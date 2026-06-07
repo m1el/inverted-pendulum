@@ -1,0 +1,233 @@
+[
+  {
+    "idx": 0,
+    "T": 12.0,
+    "target": "zeros",
+    "seed": 1,
+    "a_max": 25.0,
+    "status": "solved",
+    "cost": 85.984,
+    "term": 0.0,
+    "maxv": 5.201
+  },
+  {
+    "idx": 1,
+    "T": 11.0,
+    "target": "all+2pi",
+    "seed": 0,
+    "a_max": 50.0,
+    "status": "solved",
+    "cost": 94.944,
+    "term": 0.0,
+    "maxv": 5.515
+  },
+  {
+    "idx": 2,
+    "T": 11.0,
+    "target": "all+2pi",
+    "seed": 2,
+    "a_max": 50.0,
+    "status": "solved",
+    "cost": 78.343,
+    "term": 0.0,
+    "maxv": 5.092
+  },
+  {
+    "idx": 3,
+    "T": 11.0,
+    "target": "zeros",
+    "seed": 2,
+    "a_max": 35.0,
+    "status": "solved",
+    "cost": 105.121,
+    "term": 0.0,
+    "maxv": 6.407
+  },
+  {
+    "idx": 4,
+    "T": 11.0,
+    "target": "zeros",
+    "seed": 0,
+    "a_max": 50.0,
+    "status": "solved",
+    "cost": 85.761,
+    "term": 0.0,
+    "maxv": 4.579
+  },
+  {
+    "idx": 5,
+    "T": 11.0,
+    "target": "all+2pi",
+    "seed": 1,
+    "a_max": 50.0,
+    "status": "solved",
+    "cost": 76.137,
+    "term": 0.0,
+    "maxv": 4.693
+  },
+  {
+    "idx": 6,
+    "T": 12.0,
+    "target": "zeros",
+    "seed": 0,
+    "a_max": 50.0,
+    "status": "solved",
+    "cost": 83.808,
+    "term": 0.0,
+    "maxv": 5.713
+  },
+  {
+    "idx": 7,
+    "T": 12.0,
+    "target": "zeros",
+    "seed": 2,
+    "a_max": 35.0,
+    "status": "solved",
+    "cost": 88.128,
+    "term": 0.0,
+    "maxv": 5.753
+  },
+  {
+    "idx": 8,
+    "T": 11.0,
+    "target": "all+2pi",
+    "seed": 1,
+    "a_max": 25.0,
+    "status": "solved",
+    "cost": 76.149,
+    "term": 0.0,
+    "maxv": 4.667
+  },
+  {
+    "idx": 9,
+    "T": 11.0,
+    "target": "zeros",
+    "seed": 1,
+    "a_max": 50.0,
+    "status": "solved",
+    "cost": 617.145,
+    "term": 0.0,
+    "maxv": 12.0
+  },
+  {
+    "idx": 10,
+    "T": 11.0,
+    "target": "all+2pi",
+    "seed": 0,
+    "a_max": 35.0,
+    "status": "solved",
+    "cost": 84.548,
+    "term": 0.0,
+    "maxv": 5.649
+  },
+  {
+    "idx": 11,
+    "T": 11.0,
+    "target": "alt2pi",
+    "seed": 2,
+    "a_max": 25.0,
+    "status": "solved",
+    "cost": 334.364,
+    "term": 0.0,
+    "maxv": 7.696
+  },
+  {
+    "idx": 12,
+    "T": 12.0,
+    "target": "zeros",
+    "seed": 0,
+    "a_max": 35.0,
+    "status": "solved",
+    "cost": 58.632,
+    "term": 0.0,
+    "maxv": 3.299
+  },
+  {
+    "idx": 13,
+    "T": 12.0,
+    "target": "zeros",
+    "seed": 2,
+    "a_max": 50.0,
+    "status": "solved",
+    "cost": 111.441,
+    "term": 0.0,
+    "maxv": 4.691
+  },
+  {
+    "idx": 14,
+    "T": 11.0,
+    "target": "all+2pi",
+    "seed": 0,
+    "a_max": 25.0,
+    "status": "solved",
+    "cost": 88.101,
+    "term": 0.0,
+    "maxv": 5.812
+  },
+  {
+    "idx": 15,
+    "T": 11.0,
+    "target": "zeros",
+    "seed": 2,
+    "a_max": 25.0,
+    "status": "solved",
+    "cost": 76.646,
+    "term": 0.0,
+    "maxv": 4.753
+  },
+  {
+    "idx": 16,
+    "T": 11.0,
+    "target": "all+2pi",
+    "seed": 1,
+    "a_max": 35.0,
+    "status": "solved",
+    "cost": 75.264,
+    "term": 0.0,
+    "maxv": 4.851
+  },
+  {
+    "idx": 17,
+    "T": 11.0,
+    "target": "zeros",
+    "seed": 0,
+    "a_max": 35.0,
+    "status": "solved",
+    "cost": 76.134,
+    "term": 0.0,
+    "maxv": 4.686
+  },
+  {
+    "idx": 18,
+    "T": 11.0,
+    "target": "first+2pi",
+    "seed": 2,
+    "a_max": 25.0,
+    "status": "solved",
+    "cost": 73.306,
+    "term": 0.0,
+    "maxv": 4.607
+  },
+  {
+    "idx": 19,
+    "T": 12.0,
+    "target": "all+2pi",
+    "seed": 0,
+    "a_max": 35.0,
+    "status": "solved",
+    "cost": 76.029,
+    "term": 0.0,
+    "maxv": 4.728
+  },
+  {
+    "idx": 20,
+    "T": 12.0,
+    "target": "zeros",
+    "seed": 1,
+    "a_max": 50.0,
+    "status": "solved",
+    "cost": 78.5,
+    "term": 0.0,
+    "maxv": 4.668
+  }
+]

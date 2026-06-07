@@ -28,8 +28,9 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
 - [ ] Simulator `pendulum/sim.py` (RK4, ZOH acceleration, quantization hooks)
 - [ ] Balance: LQR (+ finite-difference / observer state estimate) for N=1..5
 - [ ] Balance precision sweeps: max dtheta (dv→0), max dv (dtheta→0), joint boundary
-- [ ] Swing-up: N=1 energy pumping + LQR catch; N≥2 trajectory optimization + TVLQR + catch
-- [ ] Swing-up precision sweeps
+- [x] Swing-up: N=1 energy pumping + LQR catch; N=2..5 trajectory optimization + TVLQR + catch
+- [x] Swing-up precision sweeps N=1..5
+- [ ] Swing-up N=6,7 (bonus, in progress)
 - [ ] Report: RESULTS.md (g=9.81, dt=0.01; scaling notes)
 
 ## Log
@@ -83,3 +84,18 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   Velocity side: kappa_v ~ 4-5 flat in N (input-channel disturbance rejection
   is O(1)) => dv requirement tracks basin alone (~4x/link), sensing >> actuation
   as the binding constraint for large N.
+- 2026-06-07: SWING-UP N=2..5 done (agent C): casadi direct collocation
+  (IMPLICIT dynamics: thetadd as decision var, M*thetadd=rhs constraint - far
+  faster than symbolic solve), homotopy warm-start (append tip link), nonlinear
+  predictor-corrector observer (FD lag destabilized high-N TVLQR even at zero
+  quant), TVLQR tracking + catch. Swing durations 3.5/5.0/7.0/12.0 s for N=2..5.
+  Thresholds (g=9.81, dt=0.01):
+    N=2: dtheta 7.8e-2, dv 1.1e-1
+    N=3: dtheta 8.5e-3, dv 3.4e-1
+    N=4: dtheta 9.8e-5, dv 1.4e-2
+    N=5: dtheta 6.9e-5, dv 2.5e-3
+  Independently re-verified zero-quant success (4 seeds) for all N; closed-loop
+  trajectories rendered to media/swingup_N{2..5}.gif. N=3 fails at dt=0.02.
+- 2026-06-07: N=6,7 swing-up (bonus): round-1 collocation found untrackable
+  whip-crack trajectories (|thetadd|~1840); round-2 adds |thetad|<=12 bound +
+  warm starts (N=7 from N=6). In progress.

@@ -33,8 +33,8 @@ TVLQR_PRESETS = {
                    qf_theta=20000, qf_thetad=1000, qf_v=20),
 }
 
-# Selected TVLQR preset per N (filled in by selection; see results/swingup_traj.json).
-TVLQR_BY_N = {2: "default", 3: "vtight", 4: "vtight", 5: "vtight"}
+# Selected TVLQR preset per N (from scripts/select_*.py closed-loop search).
+TVLQR_BY_N = {2: "default", 3: "vtight", 4: "default", 5: "default"}
 
 
 # Best balance tunings found by scripts/tune_balance.py (largest upright basin).
@@ -139,6 +139,7 @@ class SwingupController:
         self.target = data["target"] if "target" in data else self.nom_theta[-1]
         self.T = float(self.tnodes[-1])
         self.Nsteps = self.nom_theta.shape[0] - 1
+        self.dt_nom = self.T / self.Nsteps   # trajectory grid step
 
         if tvlqr_kw is None:
             tvlqr_kw = TVLQR_PRESETS[TVLQR_BY_N.get(n, "vtight")]
@@ -219,10 +220,13 @@ class SwingupController:
                 or not np.all(np.isfinite(self.balance.zhat))):
             return v
 
+        # Index the nominal trajectory by wall-clock time so the controller is
+        # robust to sim dt != trajectory grid step.
+        k = int(round(t / self.dt_nom))
         # Decide phase. Switch to balance when near upright AND past most of traj.
         near = (np.all(np.abs(wrap(theta_est)) < self.catch_angle)
                 and np.all(np.abs(thetad_est) < self.catch_rate))
-        if self.caught or (near and self.k >= self.Nsteps - 1):
+        if self.caught or (near and k >= self.Nsteps - 1):
             if not self.caught:
                 self.caught = True
                 # seed balance KF state with current estimate (wrapped to upright)
@@ -238,13 +242,13 @@ class SwingupController:
             return v_cmd
 
         # --- TVLQR feedforward+feedback phase ---
-        k = min(self.k, self.Nsteps - 1)
+        k = min(k, self.Nsteps - 1)
         z_nom = np.concatenate([self.nom_theta[k], self.nom_thetad[k], [self.nom_v[k]]])
         z_est = np.concatenate([theta_est, thetad_est, [v]])
         dz = z_est - z_nom
         a_ff = self.nom_a[k]
         a = a_ff - float((self.Ks[k] @ dz)[0])
-        self.k += 1
+        self.k = k
         v_cmd = v + a * self.dt
         if not np.isfinite(v_cmd):
             return v

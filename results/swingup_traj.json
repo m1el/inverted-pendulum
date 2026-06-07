@@ -1,0 +1,136 @@
+{
+  "2": {
+    "swing_duration": 3.5,
+    "horizon": 23.5,
+    "zero_quant_success": true,
+    "dtheta_threshold": [
+      0.07707029605157037,
+      0.0789297271419465
+    ],
+    "dv_threshold": [
+      0.10800403402931195,
+      0.11110834437328543
+    ],
+    "joint": {
+      "dtheta": 0.007707029605157037,
+      "dv_threshold": [
+        0.1475073525229895,
+        0.1517470886065971
+      ],
+      "dv_headline": 0.14961220302311787
+    },
+    "seeds": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "dtheta_headline": 0.07799447056105635,
+    "dv_headline": 0.10954519344376928,
+    "selection": {
+      "idx": 0,
+      "preset": "default"
+    }
+  },
+  "3": {
+    "swing_duration": 5.0,
+    "horizon": 25.0,
+    "zero_quant_success": true,
+    "dtheta_threshold": [
+      0.00839468927705689,
+      0.008597223158921856
+    ],
+    "dv_threshold": [
+      0.3355119131322096,
+      0.3451553779511254
+    ],
+    "joint": {
+      "dtheta": 0.000839468927705689,
+      "dv_threshold": [
+        0.25998461730718275,
+        0.2674572357518016
+      ],
+      "dv_headline": 0.2636944578161799
+    },
+    "seeds": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "dtheta_headline": 0.00849535267453132,
+    "dv_headline": 0.3402994874874968,
+    "selection": {
+      "idx": 5,
+      "preset": "vtight"
+    }
+  },
+  "4": {
+    "swing_duration": 7.0,
+    "horizon": 27.0,
+    "zero_quant_success": true,
+    "dtheta_threshold": [
+      9.72492472466073e-05,
+      9.959552438721954e-05
+    ],
+    "dv_threshold": [
+      0.013647431861622749,
+      0.014039693727371306
+    ],
+    "joint": {
+      "dtheta": 9.72492472466073e-06,
+      "dv_threshold": [
+        0.007316502949807254,
+        0.007526797833632009
+      ],
+      "dv_headline": 0.007420905507575975
+    },
+    "seeds": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "dtheta_headline": 9.841539399803377e-05,
+    "dv_headline": 0.013842173366287253,
+    "selection": {
+      "idx": 1,
+      "preset": "default"
+    }
+  },
+  "5": {
+    "swing_duration": 12.0,
+    "horizon": 32.0,
+    "zero_quant_success": true,
+    "dtheta_threshold": [
+      6.801154414032184e-05,
+      6.965241988828033e-05
+    ],
+    "dv_threshold": [
+      0.002422937897394444,
+      0.0024925792885266084
+    ],
+    "joint": {
+      "dtheta": 6.801154414032184e-06,
+      "dv_threshold": [
+        0.003922438738461166,
+        0.004035179593549066
+      ],
+      "dv_headline": 0.003978409827353742
+    },
+    "seeds": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "dtheta_headline": 6.882709226541544e-05,
+    "dv_headline": 0.0024575119166408126,
+    "selection": {
+      "file": "cand_6.npz",
+      "preset": "default",
+      "ok": 4,
+      "worst_tail": 2.5380187431700563e-05
+    }
+  }
+}
