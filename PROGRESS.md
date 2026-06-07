@@ -34,3 +34,12 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
 
 ## Log
 - 2026-06-07: project setup; derived closed-form dynamics by hand.
+- 2026-06-07: dynamics verified vs independent sympy Lagrangian derivation
+  (N=1..5, err <1e-8) and energy conservation (drift <5e-9 over 10 s).
+- 2026-06-07: LQR balance works N=1..5 with perfect observation. Basin of
+  attraction shrinks fast with N (alternating tilt 0.02 rad fails for N>=4).
+  Unstable pole lam_max: 3.8, 7.2, 10.3, 13.2, 15.9 /s for N=1..5.
+- 2026-06-07: launched 3 parallel workstreams: (A) balance precision sweeps,
+  (B) N=1 swing-up (energy pumping), (C) N=2..5 swing-up (casadi direct
+  collocation + TVLQR + catch). Orchestrator measuring basin radii + linear
+  noise-amplification (kappa) for a theory-side prediction of thresholds.
