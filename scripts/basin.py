@@ -20,9 +20,11 @@ from pendulum.sim import simulate, upright_fail_check
 from pendulum.balance import FDBalancer, upright_lqr
 
 DT, G = 0.01, 9.81
+N_LIST = [int(a) for a in sys.argv[1:]] or list(range(1, 6))
+OUT = f"results/basin_N{min(N_LIST)}-{max(N_LIST)}.json" if sys.argv[1:] else "results/basin.json"
 results = {}
 
-for n in range(1, 6):
+for n in N_LIST:
     chain = Chain(n, G)
     Ac, _ = chain.linearize_upright()
     lam_max = float(np.max(np.linalg.eigvals(Ac).real))
@@ -36,7 +38,7 @@ for n in range(1, 6):
         return res["success"] and np.max(np.abs(res["y"][:n])) < 1e-3
 
     def radius(direction):
-        lo, hi = 1e-5, 1.0
+        lo, hi = 1e-7, 1.0
         if not recovers(direction, lo):
             return 0.0
         if recovers(direction, hi):
@@ -83,5 +85,5 @@ for n in range(1, 6):
           f"pred dtheta_max~{r_alt/kappa:.1e}")
 
 pathlib.Path("results").mkdir(exist_ok=True)
-json.dump(results, open("results/basin.json", "w"), indent=2)
-print("saved results/basin.json")
+json.dump(results, open(OUT, "w"), indent=2)
+print(f"saved {OUT}")

@@ -54,9 +54,10 @@ def f_state(z, a, n, A, b, g):
 
 
 def make_dynamics_fn(n, g=9.81):
+    """Explicit ODE as an SX Function (expandable -> fast IPOPT Hessians)."""
     A, b = chain_constants(n)
-    z = ca.MX.sym("z", 2 * n + 1)
-    a = ca.MX.sym("a")
+    z = ca.SX.sym("z", 2 * n + 1)
+    a = ca.SX.sym("a")
     zdot = f_state(z, a, n, A, b, g)
     return ca.Function("f", [z, a], [zdot])
 
@@ -198,7 +199,7 @@ def solve_swingup(
         opti.set_initial(vv, rng.uniform(-2, 2, K + 1))
         opti.set_initial(Ac, rng.uniform(-5, 5, (1, K + 1)))
 
-    p_opts = {"expand": True}
+    p_opts = {}
     s_opts = {
         "max_iter": max_iter,
         "print_level": print_level,

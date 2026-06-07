@@ -56,3 +56,10 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   Both basin radius and noise amplification worsen ~4-6x per added link =>
   required angle precision shrinks ~25-40x per link (two multiplicative
   mechanisms). To be checked against agent A's empirical thresholds.
+- 2026-06-07: extended to N=6,7 (results/basin_N6-7.json), computed directly,
+  matching the log-linear extrapolation from N=1..5 (delta-theta trend
+  ~20.3x/link, fit delta-theta ~ 8*20^-N rad):
+  N=6: lam=18.3/s basin=7.0e-4 kappa=5948  pred dtheta ~1.2e-7
+  N=7: lam=20.6/s basin=1.4e-4 kappa=26136 pred dtheta ~5.5e-9
+  lam_max ≈ (3.0N+1.06)*sqrt(g/9.81), linear in N. Scaling laws:
+  dtheta_max = Phi_N(dt*sqrt(g/L)); dv_max = sqrt(gL)*Psi_N(dt*sqrt(g/L)).

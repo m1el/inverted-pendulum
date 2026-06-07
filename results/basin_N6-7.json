@@ -1,0 +1,18 @@
+{
+  "6": {
+    "lam_max": 18.33834462090833,
+    "basin_alt": 0.0006966830125190866,
+    "basin_rand_median": 0.00232152267751966,
+    "basin_rand_min": 0.0005504566631021748,
+    "kappa_meas_to_theta": 5948.060173704853,
+    "predicted_dtheta_max": 1.1712776807453605e-07
+  },
+  "7": {
+    "lam_max": 20.63248037298071,
+    "basin_alt": 0.00014336530821754432,
+    "basin_rand_median": 0.00035880101836520346,
+    "basin_rand_min": 0.00012085282145079276,
+    "kappa_meas_to_theta": 26135.933719736837,
+    "predicted_dtheta_max": 5.4853715866780165e-09
+  }
+}

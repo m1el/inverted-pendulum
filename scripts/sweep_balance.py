@@ -35,9 +35,28 @@ def make_fd(lqr_kw):
         return FDBalancer(chain, dt, **lqr_kw)
     return f
 
+
+# Floor the *noise model* steps fed to the KF's DARE. The actual quantization
+# applied by the simulator still uses the true dtheta/dv (passed by protocol);
+# only the KF's internal noise-variance estimate is floored. Without this,
+# extremely fine dtheta (e.g. the bisection's lo=1e-7) drives meas_var toward
+# zero and solve_discrete_are becomes ill-conditioned and raises.
+KF_DTHETA_FLOOR = 1e-5   # rad: KF gains nothing from modeling finer angle noise
+KF_DV_FLOOR = 1e-5       # m/s
+
+class RobustKalmanBalancer(KalmanBalancer):
+    """KalmanBalancer whose *noise model* uses floored dtheta/dv (to keep the
+    filter DARE well-conditioned at very fine grids) while its *output
+    quantization* uses the true dv (so it matches what the simulator applies)."""
+    def __init__(self, chain, dt, dtheta, dv, **lqr_kw):
+        dth_model = max(dtheta, KF_DTHETA_FLOOR)
+        dv_model = max(dv, KF_DV_FLOOR)
+        super().__init__(chain, dt, dth_model, dv_model, **lqr_kw)
+        self.dv = dv  # restore true dv for self-quantization of the command
+
 def make_kf(lqr_kw):
     def f(chain, dt, dtheta, dv):
-        return KalmanBalancer(chain, dt, dtheta, dv, **lqr_kw)
+        return RobustKalmanBalancer(chain, dt, dtheta, dv, **lqr_kw)
     return f
 
 
@@ -72,10 +91,16 @@ def w_threshold(args):
         args["n"], args["g"], args["dt"], args["controller"], args["lqr_kw"],
         args.get("dtheta_fixed", 0.0), args.get("dv_fixed", 0.0), args["sweep"],
     )
-    lo, hi = args.get("lo", 1e-7), args.get("hi", 1.0)
+    # lo floored at 1e-6: finer grids are physically irrelevant and stress the
+    # filter DARE. hi=1.0 (failure expected there).
+    lo, hi = args.get("lo", 1e-6), args.get("hi", 1.0)
     t0 = time.time()
-    res = threshold_bisect(fn, lo=lo, hi=hi)
-    return key, {"bracket": list(res), "secs": round(time.time() - t0, 1)}
+    try:
+        res = threshold_bisect(fn, lo=lo, hi=hi)
+        return key, {"bracket": list(res), "secs": round(time.time() - t0, 1)}
+    except Exception as e:  # never let one combo kill the pool
+        return key, {"bracket": [0.0, 0.0], "secs": round(time.time() - t0, 1),
+                     "error": repr(e)}
 
 
 # ---------------------------------------------------------------------------
