@@ -1,0 +1,46 @@
+[
+  {
+    "idx": 0,
+    "T": 7.0,
+    "target": "all+2pi",
+    "seed": 4,
+    "homo": false,
+    "cost": 139.439,
+    "track": 20.63906,
+    "term": 0.0,
+    "maxv": 6.605
+  },
+  {
+    "idx": 1,
+    "T": 7.0,
+    "target": "zeros",
+    "seed": 0,
+    "homo": true,
+    "cost": 171.184,
+    "track": 15.61799,
+    "term": 0.0,
+    "maxv": 5.86
+  },
+  {
+    "idx": 2,
+    "T": 7.0,
+    "target": "alt2pi",
+    "seed": 0,
+    "homo": true,
+    "cost": 114.399,
+    "track": 2.71272,
+    "term": 0.0,
+    "maxv": 5.965
+  },
+  {
+    "idx": 3,
+    "T": 8.0,
+    "target": "alt2pi",
+    "seed": 2,
+    "homo": false,
+    "cost": 2083.617,
+    "track": 23.98559,
+    "term": 0.0,
+    "maxv": 12.0
+  }
+]

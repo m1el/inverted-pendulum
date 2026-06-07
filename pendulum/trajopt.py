@@ -62,6 +62,29 @@ def make_dynamics_fn(n, g=9.81):
     return ca.Function("f", [z, a], [zdot])
 
 
+def make_M_rhs_fn(n, g=9.81):
+    """SX functions for the mass matrix M(theta) and rhs(theta,thetad,a).
+
+    Used by the *implicit* collocation, which keeps thetadd as a decision
+    variable and enforces M@thetadd == rhs as an algebraic constraint. This
+    avoids the symbolic matrix inverse (ca.solve), whose expression blows up
+    combinatorially for n>=4 and makes IPOPT Hessians extremely slow.
+    """
+    A, b = chain_constants(n)
+    Aca = ca.DM(A); bca = ca.DM(b.reshape(-1, 1))
+    theta = ca.SX.sym("theta", n)
+    thetad = ca.SX.sym("thetad", n)
+    a = ca.SX.sym("a")
+    dth = ca.repmat(theta, 1, n) - ca.repmat(theta.T, n, 1)
+    M = Aca * ca.cos(dth) + ca.DM(np.eye(n) / 12.0)
+    rhs = (-a * bca * ca.cos(theta)
+           - ca.mtimes(Aca * ca.sin(dth), thetad ** 2)
+           + g * bca * ca.sin(theta))
+    Mfn = ca.Function("M", [theta], [M])
+    rfn = ca.Function("rhs", [theta, thetad, a], [rhs])
+    return Mfn, rfn
+
+
 # ---------------------------------------------------------------------------
 def cross_check(n, g=9.81, ntests=20, seed=0):
     from .dynamics import Chain
@@ -101,6 +124,8 @@ def solve_swingup(
     init_guess=None,
     max_iter=3000,
     print_level=0,
+    settle_band=0.15,
+    tol=1e-8,
 ):
     """Hermite-Simpson direct collocation swing-up.
 
@@ -170,7 +195,7 @@ def solve_swingup(
     if settle_frac > 0:
         kstart = int(round((1 - settle_frac) * K))
         for k in range(kstart, K + 1):
-            opti.subject_to(opti.bounded(theta_target - 0.15, th[:, k], theta_target + 0.15))
+            opti.subject_to(opti.bounded(theta_target - settle_band, th[:, k], theta_target + settle_band))
         cost += w_term * ca.sumsqr(th[:, K] - theta_target.reshape(-1, 1))
 
     opti.minimize(cost)
@@ -204,8 +229,8 @@ def solve_swingup(
         "max_iter": max_iter,
         "print_level": print_level,
         "sb": "yes",
-        "tol": 1e-8,
-        "acceptable_tol": 1e-6,
+        "tol": tol,
+        "acceptable_tol": max(tol * 100, 1e-6),
         "mu_strategy": "adaptive",
     }
     opti.solver("ipopt", p_opts, s_opts)
@@ -233,6 +258,120 @@ def solve_swingup(
         "K": K,
         "n": n,
     }
+
+
+def solve_swingup_implicit(
+    n, T, K, g=9.81, a_max=40.0, v_max=12.0, theta_target=None,
+    settle_frac=0.0, settle_band=0.2, w_a=1.0, w_smooth=1e-3,
+    seed=0, init_guess=None, max_iter=3000, print_level=0, tol=1e-7,
+):
+    """Trapezoidal direct collocation with IMPLICIT dynamics.
+
+    Decision vars per node: theta(n), thetad(n), v, tdd(n), a.
+    Constraints: M(theta_k) tdd_k = rhs(theta_k, thetad_k, a_k)   (dynamics)
+                 trapezoidal defects on (theta, thetad, v).
+    Much faster than the explicit form for n>=4.
+    """
+    A, b = chain_constants(n)
+    if theta_target is None:
+        theta_target = np.zeros(n)
+    theta_target = np.asarray(theta_target, float)
+    h = T / K
+    Mfn, rfn = make_M_rhs_fn(n, g)
+
+    opti = ca.Opti()
+    TH = opti.variable(n, K + 1)
+    TD = opti.variable(n, K + 1)
+    VV = opti.variable(1, K + 1)
+    TDD = opti.variable(n, K + 1)
+    AC = opti.variable(1, K + 1)
+
+    cost = 0
+    # node dynamics (implicit) + trapezoidal defects
+    for k in range(K + 1):
+        opti.subject_to(ca.mtimes(Mfn(TH[:, k]), TDD[:, k])
+                        == rfn(TH[:, k], TD[:, k], AC[0, k]))
+    for k in range(K):
+        opti.subject_to(TH[:, k + 1] - TH[:, k]
+                        == 0.5 * h * (TD[:, k] + TD[:, k + 1]))
+        opti.subject_to(TD[:, k + 1] - TD[:, k]
+                        == 0.5 * h * (TDD[:, k] + TDD[:, k + 1]))
+        opti.subject_to(VV[0, k + 1] - VV[0, k]
+                        == 0.5 * h * (AC[0, k] + AC[0, k + 1]))
+        cost += 0.5 * h * (AC[0, k] ** 2 + AC[0, k + 1] ** 2) * w_a
+        cost += w_smooth * (AC[0, k + 1] - AC[0, k]) ** 2
+
+    # boundary
+    opti.subject_to(TH[:, 0] == np.pi)
+    opti.subject_to(TD[:, 0] == 0)
+    opti.subject_to(VV[0, 0] == 0)
+    opti.subject_to(TH[:, K] == theta_target)
+    opti.subject_to(TD[:, K] == 0)
+    opti.subject_to(VV[0, K] == 0)
+
+    opti.subject_to(opti.bounded(-a_max, ca.vec(AC), a_max))
+    opti.subject_to(opti.bounded(-v_max, VV, v_max))
+    if settle_frac > 0:
+        kstart = int(round((1 - settle_frac) * K))
+        for k in range(kstart, K + 1):
+            opti.subject_to(opti.bounded(theta_target - settle_band,
+                                         TH[:, k], theta_target + settle_band))
+
+    opti.minimize(cost)
+
+    rng = np.random.default_rng(seed)
+    s = np.linspace(0, 1, K + 1)
+    if init_guess is not None:
+        Kg = init_guess["theta"].shape[0] - 1
+        sg = np.linspace(0, 1, Kg + 1)
+        thg = np.array([np.interp(s, sg, init_guess["theta"][:, j]) for j in range(n)])
+        tdg = np.array([np.interp(s, sg, init_guess["thetad"][:, j]) for j in range(n)])
+        vg = np.interp(s, sg, init_guess["v"])
+        ag = np.interp(s, sg, init_guess["a"])
+        opti.set_initial(TH, thg)
+        opti.set_initial(TD, tdg)
+        opti.set_initial(VV, vg.reshape(1, -1))
+        opti.set_initial(AC, ag.reshape(1, -1))
+    else:
+        thg = np.outer(np.full(n, np.pi), (1 - s)) + np.outer(theta_target, s)
+        thg += rng.uniform(-0.5, 0.5, thg.shape) * np.sin(np.pi * s)
+        opti.set_initial(TH, thg)
+        opti.set_initial(TD, rng.uniform(-1, 1, (n, K + 1)))
+        opti.set_initial(VV, rng.uniform(-2, 2, (1, K + 1)))
+        opti.set_initial(AC, rng.uniform(-5, 5, (1, K + 1)))
+
+    s_opts = {"max_iter": max_iter, "print_level": print_level, "sb": "yes",
+              "tol": tol, "acceptable_tol": max(tol * 100, 1e-6),
+              "mu_strategy": "adaptive"}
+    opti.solver("ipopt", {"expand": True}, s_opts)
+    try:
+        sol = opti.solve(); status = "solved"
+    except RuntimeError:
+        sol = opti.debug; status = "failed"
+
+    try:
+        THv = np.array(sol.value(TH)); TDv = np.array(sol.value(TD))
+        VVv = np.array(sol.value(VV)).ravel(); ACv = np.array(sol.value(AC)).ravel()
+        cost_v = float(sol.value(cost))
+    except RuntimeError:
+        return {"status": "failed", "T": T, "K": K, "n": n}
+    return {"t": np.linspace(0, T, K + 1), "theta": THv.T, "thetad": TDv.T,
+            "v": VVv, "a": ACv, "cost": cost_v, "status": status,
+            "T": T, "K": K, "n": n}
+
+
+def homotopy_guess(sol_lower):
+    """Build an initial guess for N links from an (N-1)-link solution by
+    appending a copy of the last link's angle/rate (the chain tip), keeping the
+    same time grid, control and pivot velocity. The new link starts at pi."""
+    th = sol_lower["theta"]; td = sol_lower["thetad"]
+    Kp1 = th.shape[0]
+    new_th = np.hstack([th, th[:, -1:].copy()])
+    new_td = np.hstack([td, td[:, -1:].copy()])
+    # ensure new link's start is exactly pi (boundary will enforce anyway)
+    new_th[0, -1] = np.pi
+    return {"theta": new_th, "thetad": new_td, "a": sol_lower["a"],
+            "v": sol_lower["v"]}
 
 
 if __name__ == "__main__":

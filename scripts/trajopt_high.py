@@ -47,7 +47,8 @@ def crosscheck(n, tol=1e-9):
     print(f"N={n}: casadi dynamics cross-check OK")
 
 
-def solve(n, T, seed, amax=40.0, vmax=15.0, h=0.02, max_iter=4000):
+def solve(n, T, seed, amax=40.0, vmax=15.0, h=0.01, max_iter=4000,
+          thdmax=12.0, warm=None):
     K = int(round(T / h))
     opti = ca.Opti()
     TH = opti.variable(n, K + 1)
@@ -77,20 +78,38 @@ def solve(n, T, seed, amax=40.0, vmax=15.0, h=0.02, max_iter=4000):
     opti.subject_to(opti.bounded(-amax, Acc, amax))
     opti.subject_to(opti.bounded(-vmax, V, vmax))
     opti.subject_to(opti.bounded(-4 * np.pi, TH, 4 * np.pi))
+    opti.subject_to(opti.bounded(-thdmax, THD, thdmax))  # trackability
 
     J = ca.sumsqr(Acc) * h + 0.1 * ca.sumsqr(THD) * h
     opti.minimize(J)
 
-    # initial guess: interpolate pi -> 0 with seeded sinusoidal wiggles
-    rng = np.random.default_rng(seed)
-    s = np.linspace(0, 1, K + 1)
-    th0 = np.pi * (1 - s)[None, :] * np.ones((n, 1))
-    for i in range(n):
-        nw = rng.integers(1, 4)
-        for w in range(nw):
-            th0[i] += rng.uniform(-1.5, 1.5) * np.sin(np.pi * (w + 1) * s)
-    opti.set_initial(TH, th0)
-    opti.set_initial(THD, np.gradient(th0, h, axis=1))
+    if warm is not None:
+        # warm start from a previous solution (possibly lower N: pad by
+        # duplicating the last link, which trails its parent)
+        w = dict(np.load(warm))
+        tw = w["t"] * (T / w["t"][-1])  # stretch to new horizon
+        tN = np.arange(K + 1) * h
+        nw_links = w["theta"].shape[1]
+        th0 = np.zeros((n, K + 1))
+        for i in range(n):
+            src = min(i, nw_links - 1)
+            th0[i] = np.interp(tN, tw, w["theta"][:, src])
+        opti.set_initial(TH, th0)
+        opti.set_initial(THD, np.gradient(th0, h, axis=1))
+        ta = tw[:-1] if len(w["a"]) == len(tw) - 1 else tw
+        opti.set_initial(Acc, np.clip(np.interp(tN[:-1], ta, w["a"]), -amax, amax))
+        opti.set_initial(V, np.clip(np.interp(tN, tw, w["v"]), -vmax, vmax))
+    else:
+        # initial guess: interpolate pi -> 0 with seeded sinusoidal wiggles
+        rng = np.random.default_rng(seed)
+        s = np.linspace(0, 1, K + 1)
+        th0 = np.pi * (1 - s)[None, :] * np.ones((n, 1))
+        for i in range(n):
+            nwi = rng.integers(1, 4)
+            for wv in range(nwi):
+                th0[i] += rng.uniform(-1.5, 1.5) * np.sin(np.pi * (wv + 1) * s)
+        opti.set_initial(TH, th0)
+        opti.set_initial(THD, np.gradient(th0, h, axis=1))
 
     opti.solver("ipopt", {"print_time": False},
                 {"max_iter": max_iter, "print_level": 3, "tol": 1e-8,
@@ -109,7 +128,8 @@ def solve(n, T, seed, amax=40.0, vmax=15.0, h=0.02, max_iter=4000):
         J=float(sol.value(J)), amax=amax, vmax=vmax, h=h, T=T, n=n, seed=seed,
     )
     pathlib.Path("results/trajectories_high").mkdir(parents=True, exist_ok=True)
-    fn = f"results/trajectories_high/swingup_N{n}_T{T}_s{seed}.npz"
+    tag = "w" if warm else "s"
+    fn = f"results/trajectories_high/swingup_N{n}_T{T}_{tag}{seed}.npz"
     np.savez(fn, **out)
     print(f"N={n} T={T} seed={seed}: J={out['J']:.2f} saved {fn}")
     return fn
@@ -117,7 +137,6 @@ def solve(n, T, seed, amax=40.0, vmax=15.0, h=0.02, max_iter=4000):
 
 if __name__ == "__main__":
     n, T, seed = int(sys.argv[1]), float(sys.argv[2]), int(sys.argv[3])
-    amax = float(sys.argv[4]) if len(sys.argv) > 4 else 40.0
-    vmax = float(sys.argv[5]) if len(sys.argv) > 5 else 15.0
+    warm = sys.argv[4] if len(sys.argv) > 4 else None
     crosscheck(n)
-    solve(n, T, seed, amax, vmax)
+    solve(n, T, seed, warm=warm)

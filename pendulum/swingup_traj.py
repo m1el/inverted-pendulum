@@ -147,7 +147,13 @@ class SwingupController:
         self.Ks = compute_tvlqr(chain, data, dt, **tvlqr_kw)
 
         bkw = balance_kw if balance_kw is not None else BALANCE_TUNINGS.get(n, {})
-        self.balance = KalmanBalancer(chain, dt, dtheta, dv, **bkw)
+        # KalmanBalancer's KF ARE can be ill-conditioned for large dtheta with
+        # dv=0 (process noise -> 0). Floor the design noise so the KF is always
+        # well posed; the *actual* quantization in the sim is still dtheta/dv.
+        dtheta_dsg = min(max(dtheta, 1e-4), 0.05)
+        dv_dsg = max(dv, 1e-3)
+        self.balance = KalmanBalancer(chain, dt, dtheta_dsg, dv_dsg, **bkw)
+        self.balance.dv = dv  # use the real dv for the controller's own quantization
 
         self.catch_angle = catch_angle
         self.catch_rate = catch_rate
@@ -155,42 +161,65 @@ class SwingupController:
 
     def reset(self):
         self.k = 0
-        self.prev_theta = None
-        self.thetad_est = np.zeros(self.n)
         self.caught = False
         self.balance.reset()
-        # unwrap tracking: keep continuous angle estimate
-        self.theta_cont = None
+        # nonlinear predictor-corrector observer state (continuous angle)
+        self.theta_cont = None       # unwrapped angle estimate
+        self.thetad_est = np.zeros(self.n)
+        self.last_a = 0.0            # last applied pivot acceleration
 
     def _estimate(self, theta_meas):
-        """Continuous-angle + velocity estimate from quantized measurement.
+        """Nonlinear predictor-corrector observer.
 
-        We unwrap the measurement to follow the nominal continuous trajectory
-        (which sweeps through multiples of pi), then low-pass the finite
-        difference for velocity."""
+        Predict the state forward one step through the true (nonlinear) chain
+        dynamics using the last applied pivot acceleration, then correct the
+        angle toward the (unwrapped) measurement and back out a velocity
+        correction. This avoids the half-step lag of a low-pass finite
+        difference and uses the known control, which is essential for the
+        high-gain TVLQR on N>=4 (tiny upright basin)."""
         if self.theta_cont is None:
-            self.theta_cont = theta_meas.copy()
-            self.prev_theta = theta_meas.copy()
+            self.theta_cont = theta_meas.copy().astype(float)
             self.thetad_est = np.zeros(self.n)
             return self.theta_cont.copy(), self.thetad_est.copy()
-        # unwrap relative to previous continuous estimate
-        d = theta_meas - (self.theta_cont % (2 * np.pi))
+
+        # 1) predict with last applied acceleration (RK4, one dt)
+        from .sim import rk4_step
+        y = np.concatenate([self.theta_cont, self.thetad_est])
+        y = rk4_step(self.chain, y, self.last_a, self.dt)
+        theta_pred = y[:self.n]
+        thetad_pred = y[self.n:]
+
+        # 2) unwrap measurement relative to prediction
+        d = theta_meas - (theta_pred % (2 * np.pi))
         d = (d + np.pi) % (2 * np.pi) - np.pi
-        new_cont = self.theta_cont + d
-        raw_vel = (new_cont - self.theta_cont) / self.dt
-        # low-pass
-        alpha = 0.5
-        self.thetad_est = (1 - alpha) * self.thetad_est + alpha * raw_vel
-        self.theta_cont = new_cont
+        theta_meas_cont = theta_pred + d
+
+        # 3) correct: blend predicted angle toward measurement; nudge velocity
+        #    by the angle innovation (observer gains; lo for clean meas, the
+        #    quantization-noise robustness comes from gain<1).
+        innov = theta_meas_cont - theta_pred
+        lp = 0.7   # angle correction gain
+        lv = 0.4   # velocity correction gain (per dt)
+        self.theta_cont = theta_pred + lp * innov
+        self.thetad_est = thetad_pred + lv * innov / self.dt
         return self.theta_cont.copy(), self.thetad_est.copy()
 
     def __call__(self, theta_meas, t, v, x):
         n = self.n
         theta_meas = np.asarray(theta_meas, float)
+        # If the plant/estimate has already diverged (NaN), command 0 so the
+        # sim records the failure cleanly instead of raising on int(NaN).
+        if not np.all(np.isfinite(theta_meas)) or np.max(np.abs(theta_meas)) > 1e3:
+            return v
         theta_est, thetad_est = self._estimate(theta_meas)
+        # Bail out cleanly if the run has already diverged (non-finite estimate
+        # or the balance KF has gone non-finite). Counts as a failed trial.
+        if (not np.all(np.isfinite(theta_est))
+                or not np.all(np.isfinite(thetad_est))
+                or not np.all(np.isfinite(self.balance.zhat))):
+            return v
 
         # Decide phase. Switch to balance when near upright AND past most of traj.
-        wrapped = wrap(theta_est - self.target % (2 * np.pi))
         near = (np.all(np.abs(wrap(theta_est)) < self.catch_angle)
                 and np.all(np.abs(thetad_est) < self.catch_rate))
         if self.caught or (near and self.k >= self.Nsteps - 1):
@@ -199,7 +228,14 @@ class SwingupController:
                 # seed balance KF state with current estimate (wrapped to upright)
                 self.balance.zhat = np.concatenate([wrap(theta_est), thetad_est])
                 self.balance.last_a = 0.0
-            return self.balance(wrap(theta_meas), t, v, x)
+            v_cmd = self.balance(wrap(theta_meas), t, v, x)
+            if not np.isfinite(v_cmd):
+                return v
+            # keep observer's applied acceleration in sync (after dv quantization)
+            if self.dv > 0:
+                v_cmd = round(v_cmd / self.dv) * self.dv
+            self.last_a = (v_cmd - v) / self.dt
+            return v_cmd
 
         # --- TVLQR feedforward+feedback phase ---
         k = min(self.k, self.Nsteps - 1)
@@ -210,6 +246,11 @@ class SwingupController:
         a = a_ff - float((self.Ks[k] @ dz)[0])
         self.k += 1
         v_cmd = v + a * self.dt
+        if not np.isfinite(v_cmd):
+            return v
+        if self.dv > 0:
+            v_cmd = round(v_cmd / self.dv) * self.dv
+        self.last_a = (v_cmd - v) / self.dt
         return v_cmd
 
 
