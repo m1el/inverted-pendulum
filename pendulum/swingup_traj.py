@@ -23,6 +23,20 @@ def wrap(a):
     return (np.asarray(a) + np.pi) % (2 * np.pi) - np.pi
 
 
+# TVLQR weight presets (tuned in scripts/select_traj.py).
+TVLQR_PRESETS = {
+    "default": dict(q_theta=50, q_thetad=5, q_v=1.0, r=0.5,
+                    qf_theta=2000, qf_thetad=200, qf_v=10),
+    "tight": dict(q_theta=100, q_thetad=10, q_v=2.0, r=0.2,
+                  qf_theta=8000, qf_thetad=400, qf_v=20),
+    "vtight": dict(q_theta=200, q_thetad=20, q_v=2.0, r=0.1,
+                   qf_theta=20000, qf_thetad=1000, qf_v=20),
+}
+
+# Selected TVLQR preset per N (filled in by selection; see results/swingup_traj.json).
+TVLQR_BY_N = {2: "default", 3: "vtight", 4: "vtight", 5: "vtight"}
+
+
 # Best balance tunings found by scripts/tune_balance.py (largest upright basin).
 BALANCE_TUNINGS = {
     1: dict(q_theta=100, q_thetad=10, q_x=0.01, q_v=0.1, r=0.01),
@@ -127,7 +141,9 @@ class SwingupController:
         self.Nsteps = self.nom_theta.shape[0] - 1
 
         if tvlqr_kw is None:
-            tvlqr_kw = {}
+            tvlqr_kw = TVLQR_PRESETS[TVLQR_BY_N.get(n, "vtight")]
+        elif isinstance(tvlqr_kw, str):
+            tvlqr_kw = TVLQR_PRESETS[tvlqr_kw]
         self.Ks = compute_tvlqr(chain, data, dt, **tvlqr_kw)
 
         bkw = balance_kw if balance_kw is not None else BALANCE_TUNINGS.get(n, {})

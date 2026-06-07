@@ -117,6 +117,8 @@ def main():
                      term=round(r["term"], 6), maxv=round(r["maxv"], 3),
                      maxa=round(r["maxa"], 3))
             metas[n].append(m)
+            with open(ROOT / "results" / "trajectories" / f"cand_N{n}" / "meta.json", "w") as fh:
+                json.dump(metas[n], fh, indent=2)
             print(f"[{done}/{len(tasks)}] N={n} cand{idx} T={r['T']} {r['tname']} "
                   f"seed={r['seed']} cost={m['cost']} track={m['track']} "
                   f"term={m['term']} ({time.time()-t0:.0f}s)", flush=True)
