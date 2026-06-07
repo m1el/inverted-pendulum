@@ -99,3 +99,9 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
 - 2026-06-07: N=6,7 swing-up (bonus): round-1 collocation found untrackable
   whip-crack trajectories (|thetadd|~1840); round-2 adds |thetad|<=12 bound +
   warm starts (N=7 from N=6). In progress.
+- 2026-06-07: round-2 result: 9/11 IPOPT local-infeasibility. Diagnosis:
+  round-1 N=6 needs |thetad|~25.7 rad/s (~4 rev/s) to pump energy in ~12s;
+  |thetad|<=12 made feasible set empty. SCOPE NARROWED to N=6 only (user
+  request). Round 3 (N=6 only, 11 solves): allow thd<=18-22, amax=60, add
+  accel-rate smoothness penalty (favor trackable member of feasible family),
+  T in 14-18s. Goal: one trackable nominal -> TVLQR+catch -> animate.
