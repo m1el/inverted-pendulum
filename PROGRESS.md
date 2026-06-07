@@ -75,3 +75,11 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   that 0.055 passes; coarser quantization sometimes stabilizes - cf. microchaos
   literature). Bisection brackets optimistic by ~±20%. TODO: harden headline
   numbers with conservative grid-scan (largest q with all finer q passing).
+- 2026-06-07: fp32-theta experiment: fp32 measurements balance N=7 in both
+  from-up and from-down(ulp(pi)=2.4e-7) representations. Empirical uniform-
+  quantization scan: N=6 limit ~3e-5..1e-4 rad, N=7 ~1e-5..3e-5 rad =>
+  basin/kappa prediction is ~2 orders CONSERVATIVE (worst-case H-inf vs
+  broadband quantization error); empirical per-link factor ~5x, not 20x.
+  Velocity side: kappa_v ~ 4-5 flat in N (input-channel disturbance rejection
+  is O(1)) => dv requirement tracks basin alone (~4x/link), sensing >> actuation
+  as the binding constraint for large N.
