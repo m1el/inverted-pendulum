@@ -48,7 +48,7 @@ def crosscheck(n, tol=1e-9):
 
 
 def solve(n, T, seed, amax=40.0, vmax=15.0, h=0.01, max_iter=4000,
-          thdmax=12.0, warm=None):
+          thdmax=18.0, warm=None, w_smooth=0.0):
     K = int(round(T / h))
     opti = ca.Opti()
     TH = opti.variable(n, K + 1)
@@ -80,7 +80,11 @@ def solve(n, T, seed, amax=40.0, vmax=15.0, h=0.01, max_iter=4000,
     opti.subject_to(opti.bounded(-4 * np.pi, TH, 4 * np.pi))
     opti.subject_to(opti.bounded(-thdmax, THD, thdmax))  # trackability
 
-    J = ca.sumsqr(Acc) * h + 0.1 * ca.sumsqr(THD) * h
+    # heavier smoothness/speed penalty pushes IPOPT toward slow, trackable
+    # (low-Coriolis) swings instead of whip-cracks
+    dAcc = Acc[0, 1:] - Acc[0, :-1]
+    J = ca.sumsqr(Acc) * h + (0.1 + w_smooth) * ca.sumsqr(THD) * h \
+        + w_smooth * 50.0 * ca.sumsqr(dAcc)
     opti.minimize(J)
 
     if warm is not None:
@@ -136,7 +140,11 @@ def solve(n, T, seed, amax=40.0, vmax=15.0, h=0.01, max_iter=4000,
 
 
 if __name__ == "__main__":
+    # argv: N T seed [warm|none] [amax] [thdmax] [w_smooth]
     n, T, seed = int(sys.argv[1]), float(sys.argv[2]), int(sys.argv[3])
-    warm = sys.argv[4] if len(sys.argv) > 4 else None
+    warm = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] != "none" else None
+    amax = float(sys.argv[5]) if len(sys.argv) > 5 else 60.0
+    thdmax = float(sys.argv[6]) if len(sys.argv) > 6 else 18.0
+    w_smooth = float(sys.argv[7]) if len(sys.argv) > 7 else 0.02
     crosscheck(n)
-    solve(n, T, seed, warm=warm)
+    solve(n, T, seed, amax=amax, thdmax=thdmax, warm=warm, w_smooth=w_smooth)
