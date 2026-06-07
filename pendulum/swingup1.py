@@ -61,6 +61,8 @@ class SwingUp1:
         catch_rate: float = 3.0,
         release_angle: float = 0.55,
         filt: float = 0.5,
+        kick_rate: float = 0.2,
+        kick_angle: float = 0.5,
     ):
         assert chain.n == 1, "SwingUp1 is for the single-link pendulum only"
         self.chain = chain
@@ -78,6 +80,8 @@ class SwingUp1:
         self.catch_rate = catch_rate
         self.release_angle = release_angle
         self.filt = filt  # low-pass factor for thetad estimate (1 = no filter)
+        self.kick_rate = kick_rate
+        self.kick_angle = kick_angle
 
         # LQR catcher on the linearized upright model.
         self.balancer = KalmanBalancer(chain, dt, dtheta=dtheta, dv=dv)
@@ -134,9 +138,15 @@ class SwingUp1:
 
         # --- energy pumping ---
         E = (1.0 / 6.0) * thetad**2 + (self.g / 2.0) * np.cos(th_w)
-        # a_pump increases E: dE/dt = -a*thetad*cos(theta).  To drive E -> E*:
-        #   want sign(a) = sign((E - E*) * thetad * cos(theta))
+        # dE/dt = -(1/2) a thetad cos(theta).  To drive E -> E* we want
+        #   sign(a) = sign((E - E*) * thetad * cos(theta)).
         a_pump = self.k_E * (E - self.Estar) * thetad * np.cos(th_w)
+        # Symmetry-breaking kick: near the bottom with ~zero rate the pumping
+        # term vanishes (sin/cos product ~0), so the rod can stall hanging.
+        # Apply a fixed nudge to start it moving when it is essentially at rest
+        # well below upright.
+        if abs(thetad) < self.kick_rate and abs(th_w) > np.pi - self.kick_angle:
+            a_pump = self.a_max
         a_pump = float(np.clip(a_pump, -self.a_max, self.a_max))
         # cart-regulating terms (do not saturate these so they always act)
         a = a_pump - self.k_v * v - self.k_x * x
