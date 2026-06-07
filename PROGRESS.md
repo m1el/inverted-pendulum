@@ -63,3 +63,15 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   N=7: lam=20.6/s basin=1.4e-4 kappa=26136 pred dtheta ~5.5e-9
   lam_max ≈ (3.0N+1.06)*sqrt(g/9.81), linear in N. Scaling laws:
   dtheta_max = Phi_N(dt*sqrt(g/L)); dv_max = sqrt(gL)*Psi_N(dt*sqrt(g/L)).
+- 2026-06-07: N=1 SWING-UP done (agent B): energy pumping (kick at bottom,
+  a = sat(kE*(E-E*)*thd*cos th) - kv*v - kx*x) + hysteretic LQR catch.
+  Swing-up in ~0.76 s. Thresholds (g=9.81, dt=0.01): dtheta ~0.024 rad,
+  dv ~0.054 m/s; balance-only tolerates ~0.52 rad / ~0.22 m/s => swing-up is
+  ~22x stricter on angle, ~4x on velocity; binding phase is the CATCH.
+  dt-scaling non-monotone for dtheta (peak near dt=0.01, FD-noise vs discrete-
+  catch trade-off); dv threshold grows with dt; both rise ~sqrt(g) with g.
+- 2026-06-07: CAVEAT found by independent re-verification: success is
+  NON-MONOTONE in quantization step near threshold (e.g. dv=0.05 fails seeds
+  that 0.055 passes; coarser quantization sometimes stabilizes - cf. microchaos
+  literature). Bisection brackets optimistic by ~±20%. TODO: harden headline
+  numbers with conservative grid-scan (largest q with all finer q passing).
