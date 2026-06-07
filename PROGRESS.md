@@ -43,3 +43,16 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   (B) N=1 swing-up (energy pumping), (C) N=2..5 swing-up (casadi direct
   collocation + TVLQR + catch). Orchestrator measuring basin radii + linear
   noise-amplification (kappa) for a theory-side prediction of thresholds.
+- 2026-06-07: basin + amplification measured (results/basin.json), dt=0.01:
+
+  | N | lam_max /s | basin (alt tilt, rad) | kappa (meas->theta) | pred dtheta_max ~ basin/kappa |
+  |---|-----------|----------------------|---------------------|-------------------------------|
+  | 1 | 3.8 | 0.70    | 1.7  | 4e-1 |
+  | 2 | 7.2 | 0.24    | 12   | 2e-2 |
+  | 3 | 10.3 | 0.066  | 63   | 1e-3 |
+  | 4 | 13.2 | 0.014  | 297  | 5e-5 |
+  | 5 | 15.9 | 0.0033 | 1341 | 2.5e-6 |
+
+  Both basin radius and noise amplification worsen ~4-6x per added link =>
+  required angle precision shrinks ~25-40x per link (two multiplicative
+  mechanisms). To be checked against agent A's empirical thresholds.

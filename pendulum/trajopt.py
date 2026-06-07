@@ -35,7 +35,6 @@ def thetadd_ca(theta, thetad, xdd, A, b, g):
     n = A.shape[0]
     Aca = ca.DM(A)
     bca = ca.DM(b.reshape(-1, 1))
-    # dth[i,l] = theta_i - theta_l
     dth = ca.repmat(theta, 1, n) - ca.repmat(theta.T, n, 1)
     M = Aca * ca.cos(dth) + ca.DM(np.eye(n) / 12.0)
     rhs = (
@@ -64,7 +63,6 @@ def make_dynamics_fn(n, g=9.81):
 
 # ---------------------------------------------------------------------------
 def cross_check(n, g=9.81, ntests=20, seed=0):
-    """Compare casadi thetadd vs numpy Chain.thetadd at random states."""
     from .dynamics import Chain
 
     chain = Chain(n, g)
@@ -82,6 +80,158 @@ def cross_check(n, g=9.81, ntests=20, seed=0):
         tdd = out[n:2 * n]
         max_err = max(max_err, np.max(np.abs(tdd - ref)))
     return max_err
+
+
+# ---------------------------------------------------------------------------
+def solve_swingup(
+    n,
+    T,
+    K,
+    g=9.81,
+    a_max=40.0,
+    v_max=12.0,
+    theta_target=None,
+    z_init=None,
+    settle_frac=0.0,
+    w_a=1.0,
+    w_smooth=1e-3,
+    w_term=0.0,
+    seed=0,
+    init_guess=None,
+    max_iter=3000,
+    print_level=0,
+):
+    """Hermite-Simpson direct collocation swing-up.
+
+    n: links. T: horizon (s). K: number of intervals (K+1 nodes).
+    theta_target: length-n array, each a multiple of 2pi (target angle per link).
+                  default zeros (upright).
+    settle_frac: fraction of horizon at the end forced to stay near upright
+                 (tighter terminal accuracy).
+    init_guess: dict with 'theta','thetad','a','v' arrays of length K+1 (a:K+1)
+                used as initial guess (resampled if needed).
+    Returns dict: t, theta(K+1,n), thetad(K+1,n), a(K+1), v(K+1), cost, status.
+    """
+    A, b = chain_constants(n)
+    if theta_target is None:
+        theta_target = np.zeros(n)
+    theta_target = np.asarray(theta_target, float)
+    nz = 2 * n + 1
+    h = T / K
+
+    f = make_dynamics_fn(n, g)
+
+    opti = ca.Opti()
+    Z = opti.variable(nz, K + 1)       # states at nodes
+    Ac = opti.variable(1, K + 1)        # control at nodes
+    th = Z[0:n, :]
+    tdv = Z[n:2 * n, :]
+    vv = Z[2 * n, :]
+
+    # Hermite-Simpson collocation
+    cost = 0
+    for k in range(K):
+        zk = Z[:, k]
+        zk1 = Z[:, k + 1]
+        ak = Ac[0, k]
+        ak1 = Ac[0, k + 1]
+        amid = 0.5 * (ak + ak1)
+        fk = f(zk, ak)
+        fk1 = f(zk1, ak1)
+        zmid = 0.5 * (zk + zk1) + (h / 8.0) * (fk - fk1)
+        fmid = f(zmid, amid)
+        # Simpson defect
+        opti.subject_to(zk1 - zk == (h / 6.0) * (fk + 4 * fmid + fk1))
+        cost += (h / 6.0) * (ak ** 2 + 4 * amid ** 2 + ak1 ** 2) * w_a
+    # smoothness on control
+    for k in range(K):
+        cost += w_smooth * (Ac[0, k + 1] - Ac[0, k]) ** 2
+
+    # boundary conditions
+    z0 = np.zeros(nz)
+    if z_init is None:
+        z0[0:n] = np.pi
+    else:
+        z0[0:n] = z_init
+    opti.subject_to(th[:, 0] == z0[0:n])
+    opti.subject_to(tdv[:, 0] == 0)
+    opti.subject_to(vv[0] == 0)
+    # terminal
+    opti.subject_to(th[:, K] == theta_target)
+    opti.subject_to(tdv[:, K] == 0)
+    opti.subject_to(vv[K] == 0)
+
+    # path constraints
+    opti.subject_to(opti.bounded(-a_max, ca.vec(Ac), a_max))
+    opti.subject_to(opti.bounded(-v_max, vv, v_max))
+
+    # settle segment: keep near target at the tail
+    if settle_frac > 0:
+        kstart = int(round((1 - settle_frac) * K))
+        for k in range(kstart, K + 1):
+            opti.subject_to(opti.bounded(theta_target - 0.15, th[:, k], theta_target + 0.15))
+        cost += w_term * ca.sumsqr(th[:, K] - theta_target.reshape(-1, 1))
+
+    opti.minimize(cost)
+
+    # initial guess
+    rng = np.random.default_rng(seed)
+    if init_guess is not None:
+        Kg = init_guess["theta"].shape[0] - 1
+        sg = np.linspace(0, 1, Kg + 1)
+        sn = np.linspace(0, 1, K + 1)
+        thg = np.array([np.interp(sn, sg, init_guess["theta"][:, j]) for j in range(n)])
+        tdg = np.array([np.interp(sn, sg, init_guess["thetad"][:, j]) for j in range(n)])
+        vg = np.interp(sn, sg, init_guess["v"])
+        ag = np.interp(sn, sg, init_guess["a"])
+        opti.set_initial(th, thg)
+        opti.set_initial(tdv, tdg)
+        opti.set_initial(vv, vg)
+        opti.set_initial(Ac, ag.reshape(1, -1))
+    else:
+        # heuristic: interpolate theta from pi to target, add noise
+        s = np.linspace(0, 1, K + 1)
+        thg = np.outer(z0[0:n], (1 - s)) + np.outer(theta_target, s)
+        thg += rng.uniform(-0.5, 0.5, thg.shape) * np.sin(np.pi * s)
+        opti.set_initial(th, thg)
+        opti.set_initial(tdv, rng.uniform(-1, 1, (n, K + 1)))
+        opti.set_initial(vv, rng.uniform(-2, 2, K + 1))
+        opti.set_initial(Ac, rng.uniform(-5, 5, (1, K + 1)))
+
+    p_opts = {"expand": True}
+    s_opts = {
+        "max_iter": max_iter,
+        "print_level": print_level,
+        "sb": "yes",
+        "tol": 1e-8,
+        "acceptable_tol": 1e-6,
+        "mu_strategy": "adaptive",
+    }
+    opti.solver("ipopt", p_opts, s_opts)
+
+    try:
+        sol = opti.solve()
+        status = "solved"
+    except RuntimeError:
+        sol = opti.debug
+        status = "failed"
+
+    Zs = np.array(sol.value(Z))
+    Acs = np.array(sol.value(Ac)).ravel()
+    cost_v = float(sol.value(cost))
+    t = np.linspace(0, T, K + 1)
+    return {
+        "t": t,
+        "theta": Zs[0:n, :].T,
+        "thetad": Zs[n:2 * n, :].T,
+        "v": Zs[2 * n, :],
+        "a": Acs,
+        "cost": cost_v,
+        "status": status,
+        "T": T,
+        "K": K,
+        "n": n,
+    }
 
 
 if __name__ == "__main__":

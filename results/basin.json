@@ -1,0 +1,42 @@
+{
+  "1": {
+    "lam_max": 3.8360135557633264,
+    "basin_alt": 0.7009905848491556,
+    "basin_rand_median": 0.7009905848491556,
+    "basin_rand_min": 0.7009905848491556,
+    "kappa_meas_to_theta": 1.7163176774224378,
+    "predicted_dtheta_max": 0.4084270610682643
+  },
+  "2": {
+    "lam_max": 7.18867087028771,
+    "basin_alt": 0.2439629388479235,
+    "basin_rand_median": 0.3576687201308436,
+    "basin_rand_min": 0.24151367302090196,
+    "kappa_meas_to_theta": 11.940832565982474,
+    "predicted_dtheta_max": 0.02043098230377461
+  },
+  "3": {
+    "lam_max": 10.248872878877641,
+    "basin_alt": 0.06622072028830223,
+    "basin_rand_median": 0.09347200500942765,
+    "basin_rand_min": 0.060591681627491775,
+    "kappa_meas_to_theta": 63.346406946018,
+    "predicted_dtheta_max": 0.0010453745284201145
+  },
+  "4": {
+    "lam_max": 13.14902206588376,
+    "basin_alt": 0.013759925580340764,
+    "basin_rand_median": 0.05239513512042189,
+    "basin_rand_min": 0.015362332374578326,
+    "kappa_meas_to_theta": 297.3910432220762,
+    "predicted_dtheta_max": 4.6268796232930146e-05
+  },
+  "5": {
+    "lam_max": 15.850809432039693,
+    "basin_alt": 0.0033371226856610705,
+    "basin_rand_median": 0.01653299932520128,
+    "basin_rand_min": 0.004911337503003727,
+    "kappa_meas_to_theta": 1341.2102225213662,
+    "predicted_dtheta_max": 2.4881428948457843e-06
+  }
+}
