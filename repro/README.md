@@ -51,6 +51,22 @@ deterministic and fast (~1–2 min) but depends on that seed's bend order.
 *score* can be high yet its bend order may not lift to a trackable N=6 — use the
 backed-up `repro/seeds/swingup_N5_GOOD.npz` if so).
 
+## `perturbed_n6.py` — robustness challenge (don't rely on the exact start)
+
+Swing-up from a PERTURBED initial state instead of the exact nominal hang:
+`theta_i(0) = pi + U(-dtheta, dtheta)`, `thetad_i(0) = U(-dthetad, dthetad)`. The
+same controls (TVLQR feedforward+feedback) reject the initial deviation; the
+catch then balances.
+
+```bash
+uv run python repro/perturbed_n6.py [controls.npz] [--render out.mp4]
+```
+
+Default target ±0.10·pi (~10%) + ±0.5 rad/s over 16 seeds (`CHALLENGE: PASS`,
+exit 0), and reports the measured tolerance. The seed-free N=6 controls pass
+16/16 at 10% and are robust to **±0.8 rad (25% of pi)** initial angle error —
+the hanging start is near-stable, so the TVLQR funnel is wide there.
+
 ## `simulate_n6.py` — verify + animate
 
 Closed-loop swing-up (TVLQR on the nominal) **then catch** (hand off to the
