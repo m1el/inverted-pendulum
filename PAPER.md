@@ -17,7 +17,8 @@ unstable-pole structure (data-rate theorem) and the basin/noise-amplification
 geometry. We then push the swing-up frontier: N ≤ 5 succeeds with realistic
 angle-only sensing; **N = 6** succeeds only under full-state feedback, and we
 remove its dependence on a hand-curated trajectory seed using a
-**controllability-aware trajectory optimization**; **N = 7** is shown to lie
+**controllability-aware trajectory optimization** (robust to ±10% initial-state
+perturbation); **N = 7** is shown to lie
 beyond the architecture, with a diagnosis (a scalar controllability proxy cannot
 guarantee all bending modes stay excitable). Headline: required angle precision
 tightens ≈ 6–20× per added link; sensing — not actuation — is the binding
@@ -182,6 +183,14 @@ The controllability term penalizes the bending-mode excitation **collapsing**
 near-straight dip into a trackable basin, without globally fighting the swing.
 Result: seed-free N=6, final 0.018°, maxK 68,110.
 
+**Initial-condition robustness (perturbed start).** We do not rely on starting at
+the exact nominal hang: starting each run from θ_i(0) = π + U(−δθ, δθ) with random
+initial rates, the same TVLQR feedback rejects the deviation and still swings up.
+The seed-free N=6 controls pass **16/16 seeds at ±0.10π (~10%) + ±0.5 rad/s** and
+remain robust to **±0.8 rad (25% of π)** initial angle error. This is the *easy*
+direction: the hanging start is near-stable, so the funnel is widest there —
+opposite the mid-swing near-uncontrollable patch that sets the difficulty.
+
 ### 4.3 N = 7 — beyond the architecture
 
 Seeding N=7 from the clean N=6 trajectory and applying the same controllability
@@ -233,7 +242,8 @@ re-learning that silence ≠ progress.
   characterized as a frontier wall** with a precise cause.
 - **Reproduction** (`repro/`): `generate_n6.py` (seed-free, recommended),
   `stage2_n6.py` (fast from a seed), `generate_nN.py` (general N; reproduces N=6,
-  documents N=7), `simulate_n6.py` (verify swing-up + balance catch, render mp4).
+  documents N=7), `simulate_n6.py` (verify swing-up + balance catch, render mp4),
+  `perturbed_n6.py` (perturbed-start robustness challenge: 16/16 at ±10%).
 
 This matches the broader literature, where published cart-pole swing-up tops out
 at the **triple** pendulum (Glück–Kugi 2013), quadruple is rare, and 5+ is
