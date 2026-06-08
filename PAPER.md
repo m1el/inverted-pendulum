@@ -136,7 +136,7 @@ conservative vs broadband quantization.
 
 ## 4. Results — Swing-up (Task 2)
 
-### 4.1 N = 1–5 (realistic, angle-only sensing)
+### 4.1 N = 1–5 (realistic, angle-only sensing) + projected precision floor N = 6–8
 
 | N | swing T (s) | max δθ (rad) | max δv (m/s) |
 |---|------|------|------|
@@ -145,6 +145,20 @@ conservative vs broadband quantization.
 | 3 | 5.0 | 0.0085 | 0.34 |
 | 4 | 7.0 | 9.8·10⁻⁵ | 0.014 |
 | 5 | 12.0 | 6.9·10⁻⁵ | 0.0025 |
+| 6 | — | 1.2·10⁻⁷ † | — |
+| 7 | — | 5.5·10⁻⁹ † | — |
+| 8 | — | 2.8·10⁻¹⁰ ‡ | — |
+
+**† projected, not achieved.** N ≥ 6 swing-up succeeds only under full-state
+feedback (§4.2), so no realistic angle-only run exists to *measure* δθ. The N = 6–8
+entries are the **basin/κ precision predictor** δθ_max ≈ basin/κ (§3.2) — the
+angle resolution the catch into the upright basin *would* demand: **calculated**
+for N = 6, 7 (`results/basin_N6-7.json`: basin_alt 7.0·10⁻⁴ / 1.4·10⁻⁴ rad,
+κ_θ 5.9·10³ / 2.6·10⁴). **‡ N = 8 estimated** by log-linear extrapolation of the
+same series (≈ 20×/link; basin/κ and a direct fit agree to 2 sig figs). Swing
+time and δv are blank — both need a realized angle-only trajectory, which does
+not exist at these N (§5). The ≈ 20×/link collapse means angle sensing would
+have to resolve ~3·10⁻¹⁰ rad by N = 8.
 
 Swing-up needs finer precision than balance (the binding phase is the **catch** —
 entering the small upright basin), and the gap widens sharply at N=4–5. Two
@@ -268,7 +282,8 @@ the precision side.
 3. **Learned policies.** RL/MPC with the verified dynamics as a differentiable
    model — particularly for the catch, where the basin is the binding constraint.
 4. **Precision sweeps for swing-up N≥6** once a realistic-sensing controller
-   exists, to extend the δθ/δv tables.
+   exists, to *measure* the δθ/δv tables — replacing the basin/κ **projected**
+   floors now listed for N = 6–8 (§4.1) with achieved tolerances.
 5. **dt-window / robustness margins.** Ship dt in the *middle* of the trackable
    window (≈0.005–0.006 for N=6) rather than its fine edge (0.004) for margin.
 
