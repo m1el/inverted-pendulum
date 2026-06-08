@@ -21,8 +21,8 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter
 from pendulum.dynamics import Chain
 from pendulum.sim import rk4_step
 
-CONTROLS = "repro/n6_controls.npz"
 OUT = sys.argv[1] if len(sys.argv) > 1 else "repro/n6_swingup.mp4"
+CONTROLS = sys.argv[2] if len(sys.argv) > 2 else "repro/n6_controls.npz"
 
 
 def simulate(c, hold=6.0):
@@ -107,7 +107,7 @@ def main():
     c = dict(np.load(CONTROLS))
     t, theta, x = simulate(c)
     ok, final = verify(theta, float(c["dt"]))
-    print(f"final |angle| = {np.degrees(final):.3f} deg over all 6 links")
+    print(f"final |angle| = {np.degrees(final):.3f} deg over all {theta.shape[1]} links")
     print(f"VERIFICATION: {'PASS' if ok else 'FAIL'}")
     if not ok:
         sys.exit(1)
