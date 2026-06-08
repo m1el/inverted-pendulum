@@ -8,15 +8,15 @@ Per-session transcripts, summaries, and token costs live under `claude/` and `co
 
 | Agent | Sessions | Output tokens | Cost (USD) |
 |---|--:|--:|--:|
-| Claude Code | 2 | 486,430 | **$85.62** |
+| Claude Code | 2 | 523,053 | **$100.79** |
 | Codex | 0 | 0 | **$0.00** |
-| **All** | **2** | **486,430** | **$85.62** |
+| **All** | **2** | **523,053** | **$100.79** |
 
 ## Aggregate time
 
 | Agent | Wall-clock | Model gen | Tool exec | Active | Waiting for user |
 |---|--:|--:|--:|--:|--:|
-| Claude Code | 21h10m | 2h12m | 1h44m | 3h57m | 17h13m |
+| Claude Code | 21h41m | 2h21m | 1h48m | 4h10m | 17h31m |
 | Codex | 0ms | 0ms | 0ms | 0ms | 0ms |
 
 > Each section's time is attributed by what it is: `👤 User`→waiting-for-user, `🤖 Assistant`→model generation, `🛠️ Tool result`→tool execution; the three tile the session so they sum to wall-clock. Per-call exec times are matched (`tool_use`↔`tool_result`) and shown inline on each call line. Codex event timestamps are batch-flushed, so its splits are approximate.
@@ -31,7 +31,7 @@ Per-session transcripts, summaries, and token costs live under `claude/` and `co
 
 | # | Date | Model | Human/Asst | Tools | Active | Wall | Cost | First request | File |
 |--|---|---|--:|--:|--:|--:|--:|---|---|
-| 1 | 2026-06-07 17:08 | claude-opus-4-8 | 88/472 | 394 | 3h54m | 21h07m | $85.28 | you're going to work on inverted N-linked pendulum | [`claude/2026-06-07_17-08_041ca5a59d87.md`](claude/2026-06-07_17-08_041ca5a59d87.md) |
+| 1 | 2026-06-07 17:08 | claude-opus-4-8 | 95/517 | 433 | 4h07m | 21h37m | $100.45 | you're going to work on inverted N-linked pendulum | [`claude/2026-06-07_17-08_041ca5a59d87.md`](claude/2026-06-07_17-08_041ca5a59d87.md) |
 | 2 | 2026-06-07 18:59 | claude-opus-4-8 | 3/9 | 11 | 3m04s | 3m48s | $0.34 | Spin up nginx and make it start on startup; check  | [`claude/2026-06-07_18-59_42404d1d8c0a.md`](claude/2026-06-07_18-59_42404d1d8c0a.md) |
 
 ## Codex sessions
