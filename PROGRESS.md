@@ -105,3 +105,22 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   request). Round 3 (N=6 only, 11 solves): allow thd<=18-22, amax=60, add
   accel-rate smoothness penalty (favor trackable member of feasible family),
   T in 14-18s. Goal: one trackable nominal -> TVLQR+catch -> animate.
+- 2026-06-08: N=6 SWING-UP NEGATIVE RESULT (rigorous). Generated gentle,
+  trackable-stiffness nominals via agent-C's implicit solver (max|thdd|~330,
+  vs N=5's 421) at h=0.01, homotopy from N=5. ALL diverge closed-loop at a
+  FIXED mid-swing instant (t~6.8s for T=13, t~7.4s for T=15). Root cause,
+  confirmed by elimination:
+    * divergence time INVARIANT to controller: swept r in {5,20,100,soft},
+      gain caps {200..1500} -> identical div time. Not the feedback.
+    * PERFECT-STATE TVLQR also diverges there; TVLQR gain explodes 383 ->
+      1196 -> 36194 -> 44812 just before blowup.
+    * at that instant all 6 links are within ~30deg (chain near-STRAIGHT);
+      controllability ratio collapses (~1e-13). A straight chain ~ single
+      rigid body => internal bending modes near-unactuatable from one pivot.
+  Trajectory-level fix attempt (anti-alignment penalty to keep chain curved)
+  backfired: more violent (thd 38-57, thdd 2047) without improving trackability.
+  CONCLUSION: N=6 swing-up is at/beyond the edge for single-velocity-input
+  collocation+TVLQR. Matches literature (published swing-up tops out at triple;
+  we achieved N=5). N=6 BALANCE (Task 1) works fine: recovers from 6.9deg
+  uniform lean (worst-case alternating basin ~3e-4 rad). Rendered
+  media/balance_N6.gif. Per user: deliver balance animation + document finding.
