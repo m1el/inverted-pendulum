@@ -32,7 +32,6 @@ Per-session transcripts, summaries, and token costs live under `claude/` and `co
 | # | Date | Model | Human/Asst | Tools | Active | Wall | Cost | First request | File |
 |--|---|---|--:|--:|--:|--:|--:|---|---|
 | 1 | 2026-06-07 17:08 | claude-opus-4-8 | 95/517 | 433 | 4h07m | 21h37m | $100.45 | you're going to work on inverted N-linked pendulum | [`claude/2026-06-07_17-08_041ca5a59d87.md`](claude/2026-06-07_17-08_041ca5a59d87.md) |
-| 2 | 2026-06-07 18:59 | claude-opus-4-8 | 3/9 | 11 | 3m04s | 3m48s | $0.34 | Spin up nginx and make it start on startup; check  | [`claude/2026-06-07_18-59_42404d1d8c0a.md`](claude/2026-06-07_18-59_42404d1d8c0a.md) |
 
 ## Codex sessions
 
