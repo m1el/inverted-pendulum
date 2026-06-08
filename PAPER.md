@@ -227,6 +227,77 @@ floor, **no N=7 candidate is trackable at any dt ∈ [0.004, 0.015]**. Crucially
   excitable from the single pivot. One mode can be ~uncontrollable mid-swing while
   the aggregate looks healthy — unstabilizable by any TVLQR.
 
+### 4.4 Link-flip — point-to-point between unstable equilibria
+
+A different task class: not hang→upright, but **upright → one link inverted →
+upright** — a there-and-back between two *unstable* equilibria (the chain has an
+equilibrium at every θ_i ∈ {0, π}). Same controllability-aware collocation +
+full-state TVLQR; the maneuver momentarily reaches one-down (link L at π, the rest
+up) and returns to the upright catch.
+
+**It is strictly harder than swing-up at equal N.** Swing-up *starts at the hang*
+(stable, wide funnel, gains ~200); the flip *departs and returns to the
+dead-straight upright* — the maximally near-uncontrollable configuration — paying
+the catch's gain explosion at **both** ends.
+
+| N | flip trackable? | trackable links | peak maxK |
+|---|---|---|---|
+| 2 | yes | all (0,1) | 1.5·10³ |
+| 3 | yes | all (0,1,2) | 6.5·10³ |
+| 4 | yes | all (0–3) | 1.0·10⁵ |
+| 5 | partial | middle only (2,3) | 1.8·10⁵ |
+| 6 | no | none (repeated attempts) | — |
+
+N=5 already exceeds the N=6 *swing-up* stiffness (maxK 1.8·10⁵ vs 6.8·10⁴) and
+only the middle links survive; **N=6 produced no trackable flip** — over the wall.
+
+**The stiffness is the catch, not the swing.** Plotting the TVLQR gain schedule
+over time (`scripts/plot_stiffness.py`): gains are gentle (median |K|~200)
+throughout, then **plateau the instant the chain reaches upright** — median |K|
+jumps ≈90× (N=5) to ≈300× (N=6), peaking 1.7·10⁴ / 6.8·10⁴ (the ≈4×/link growth
+of the balance amplification κ). Swing-up pays this once; the flip pays it twice
+(it starts *and* ends near upright) — the mechanical reason it hits the wall a
+link sooner.
+
+**Required precision (full-state quantization thresholds).** Largest angle step δθ
+and velocity-command step δv for which the flip still completes (one-down →
+upright, balanced), by log-bisection:
+
+| N | δθ_max (rad) | δv_max (m/s) |
+|---|---|---|
+| 2 | 1.9·10⁻¹ | 1.2·10⁻¹ |
+| 3 | 2.3·10⁻² | 8.5·10⁻² |
+| 4 | 3.7·10⁻³ | 5.1·10⁻² |
+| 5 | 4.0·10⁻⁴ | 7.2·10⁻³ |
+
+- **δθ collapses ≈ 6–9×/link** — the same angle-precision law as balance/swing-up
+  (≈6.3×/link), now measured for the flip.
+- **δv stays the non-binding channel** (~0.12 → 0.007, declining slowly).
+- These are **full-state** thresholds (angle quantized, *rates exact*, as the flip
+  is full-state TVLQR) — hence upper bounds; a realistic angle-only controller
+  would be tighter, the same gap as table 4.1 vs its full-state counterpart.
+- Which link you flip matters (e.g. N=5: L2 tolerates 4·10⁻⁴ rad, L3 only
+  2.6·10⁻⁵), partly because the trackable dt differs per link.
+
+**Fold-in-half — the maneuver, not N, sets the difficulty.** A *harder-looking*
+variant: fold the upper N/2 links down as one (N=6 target [0,0,0,π,π,π], a crease
+at the middle joint). It is in fact **much easier than flipping a single link** —
+and, strikingly, **the N=6 fold is trackable where the N=6 single-link flip is
+not**:
+
+| maneuver | N=4 maxK | N=5 maxK | N=6 |
+|---|---|---|---|
+| single-link flip | 1.0·10⁵ | 1.8·10⁵ | **fails** |
+| fold-in-half | 4.4·10³ | 5.3·10⁴ | **works** — dt=0.01, final 0.079°, maxK 6.5·10⁴ |
+
+The folded target is *less* unstable (its upper links hang from an elevated joint),
+and folding both halves as a coordinated crease keeps the chain **bent and
+controllable throughout** (bend-excitation cmin ≈ 0.85 vs the flip's ≈0.2–0.6) —
+it never enters the near-straight danger zone. So the N=6 fold even succeeds at the
+*coarse* dt = 0.01 that the swing-up needed dt=0.004 to survive. **The binding
+quantity is the path's controllability, not the link count or how "large" the
+reconfiguration looks** — a 3-link fold beats a 1-link flip.
+
 ---
 
 ## 5. What worked, what was a dead end
