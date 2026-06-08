@@ -11,3 +11,7 @@ repro/seed_N5.npz
 repro/*.mp4
 results/trajectories/cand_*/
 repro/ladder_N*.npz
+repro/pool_ctrb/
+repro/pool_n6/
+repro/*_cl.npz
+repro/approach*

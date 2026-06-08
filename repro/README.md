@@ -1,67 +1,68 @@
-# Minimal reproduction: 6-link pendulum swing-up (2-stage)
+# Minimal reproduction: 6-link pendulum swing-up
 
-Two-stage optimisation, then a verify+animate consumer.
+Two ways to produce a trackable N=6 swing-up, then a verify+animate consumer.
+The **recommended** path needs no curated seed and gives gentle accelerations.
 
 ```bash
-# Stage 1: generate + select an N=5 seed from scratch  -> repro/seed_N5.npz
-uv run python repro/stage1_n5.py
+# RECOMMENDED — controllability-aware, SEED-FREE (~5 min)
+uv run python repro/generate_n6.py            # -> repro/n6_controls.npz
+uv run python repro/simulate_n6.py out.mp4    # verify (PASS) + render mp4
 
-# Stage 2: lift + refine to a trackable N=6           -> repro/n6_controls.npz
-uv run python repro/stage2_n6.py [seed.npz]
-
-# Verify (asserts upright) + render mp4
+# FAST alternative — from the backed-up good N=5 seed (~1-2 min)
+uv run python repro/stage2_n6.py repro/seeds/swingup_N5_GOOD.npz
 uv run python repro/simulate_n6.py out.mp4
-
-# Or the whole from-scratch pipeline (Stage 1 then Stage 2):
-uv run python repro/optimize_n6.py
 ```
 
-## Stages
+## Why two paths — and the "magic" (bend order)
 
-**Stage 1 — `stage1_n5.py`**  (N=5 seed, from scratch)
-- Fast coarse homotopy ladder N=2→3→4, then an N=5 candidate pool by sweeping
-  horizon × terminal target (the ±2π homotopy classes), each warm-started from
-  N=4, coarse (h=0.05) → fine (h=0.01).
-- Ranks candidates by closed-loop robustness with the realistic observer
-  controller (seeds passed of 4, then smallest tail error); saves the winner.
-- Uses N=5 actuator authority a_max=60 (cold/weak authority gives poor seeds).
+N=6 swing-up only works when the trajectory keeps the chain *controllable* — a
+coordinated left/right bending ("shimmy") that never goes dead-straight. A chain
+that goes near-straight mid-swing is near-uncontrollable from the single pivot,
+forcing TVLQR gains ~7e4 that can't be tracked. Whether a trajectory has this
+good **bend order** is the crux. We tried three ways to remove the dependence on
+a hand-curated good seed:
 
-**Stage 2 — `stage2_n6.py`**  (N=6 from a seed)
-- Homotopy-lifts the N=5 seed to N=6 and does a **direct fine solve** (h=0.01)
-  per terminal target × horizon. (A coarse→fine stage was tried and removed:
-  the N=6 coarse solve is unreliable; the direct fine solve from a good seed
-  converges in ~60 s.)
-- Keeps the N=6 trackable under FULL-STATE TVLQR at dt=0.004 (smallest upright
-  error), saves nominal + gain schedule to `n6_controls.npz`.
-- Few solves from one seed → generous IPOPT iterations, no straggler stalls.
+| approach | removes seed dependence? | result |
+|---|---|---|
+| smaller timestep dt | **no** | dt=0.004 is a *window* (≈[0.008,0.004]), not "smaller is better"; wrong bend order is genuinely uncontrollable at every dt |
+| minimal homotopy ladder | **no** | reproduces the *coarse* class (−0.5 rev/link) but not the *fine* bend order; N=6 won't even converge (0/3 seeds) |
+| **controllability-aware trajopt** | **yes** | adds a soft floor on bend-mode excitation → produces a trackable bend order from a neutral start, **and** cuts peak pivot accel ~7× |
 
-**`simulate_n6.py`** — closed-loop sim with the verified RK4 integrator + saved
-gains; asserts the chain balances the final 5 s (`VERIFICATION: PASS`, exit 0);
-renders an H.264/yuv420p mp4.
+So the bend-order property is real and largely irreducible — but it can be
+**produced by construction** with a controllability objective, instead of
+hand-curated. That is `generate_n6.py`.
 
-## The bend-order caveat (why a seed is backed up)
+## `generate_n6.py` — controllability-aware, seed-free  (RECOMMENDED)
 
-Stage 2's success depends on the N=5 seed's **bend order** — the relative left/
-right link bending (which joints bend which way, when each crosses the straight/
-aligned point). A high N=5 closed-loop *score* is necessary but NOT sufficient:
-from-scratch N=5 seeds that score 4/4 can still carry a bend order that does not
-lift to a trackable N=6. The known-good seed (T=12, all links ≈ −0.5 rev, a
-coordinated near-aligned shimmy) is backed up at:
+- Builds a NEUTRAL cold homotopy ladder N=2→5 (target zeros, no curated seed).
+- Lifts to N=6 with an added **one-sided soft floor** on the bend-mode
+  excitation `c(θ) = ‖M⁻¹(b⊙cosθ)‖²_bend` (collapses exactly when the chain
+  goes near-straight). Sweeps a few floor levels in parallel; keeps the first
+  trackable one (smallest upright error).
+- Output (verified): final **0.018°**, peak pivot accel **7.3 m/s²** (vs ~50 for
+  the seed path), maxK 68110, dt=0.004.
 
-    repro/seeds/swingup_N5_GOOD.npz
+## `stage2_n6.py` — from a given N=5 seed  (FAST)
 
-If Stage 1's from-scratch seed does not yield a trackable N=6, run Stage 2
-against the backed-up seed (the reliable path):
+Homotopy-lifts an N=5 seed to N=6 (direct fine solve per target × horizon),
+keeps the dt=0.004-trackable one. From the backed-up good seed it is
+deterministic and fast (~1–2 min) but depends on that seed's bend order.
+`stage1_n5.py` regenerates a from-scratch N=5 seed (note: a from-scratch seed's
+*score* can be high yet its bend order may not lift to a trackable N=6 — use the
+backed-up `repro/seeds/swingup_N5_GOOD.npz` if so).
 
-    uv run python repro/stage2_n6.py repro/seeds/swingup_N5_GOOD.npz
+## `simulate_n6.py` — verify + animate
 
-## Full-state caveat
+Closed-loop swing-up (TVLQR on the nominal) **then catch** (hand off to the
+upright balance LQR and hold). Asserts the chain balances the final 5 s
+(`VERIFICATION: PASS`, exit 0); renders an H.264/yuv420p mp4. The catch handoff
+makes the check robust to how late a gentle swing-up arrives upright.
 
-The controller is FULL-STATE feedback (idealised sensing). The near-straight
-mid-swing chain is near-uncontrollable from one pivot, forcing TVLQR gains
-~7e4; no realistic angle-only observer can feed gains that large. The decisive
-enabler for N=6 (vs N=5's dt=0.01) is the finer timestep dt=0.004.
+## Full-state caveat (both paths)
 
-Depends only on the verified library in `../pendulum/` (dynamics, simulator,
-collocation solver). Stage-2-from-good-seed runs in ~1–2 min and is reliable;
-from-scratch Stage 1 is a longer, lower-yield search.
+The controller is FULL-STATE feedback (idealised sensing). Even controllability-
+aware, the mid-swing chain is near-uncontrollable enough to need maxK~7e4; no
+realistic angle-only observer can feed gains that large. The decisive enabler
+for N=6 vs N=5 is the finer timestep dt=0.004.
+
+Depends only on the verified library in `../pendulum/`.

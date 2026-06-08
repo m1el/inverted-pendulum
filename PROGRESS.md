@@ -143,3 +143,22 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   N=6; reproducing the exact bend order from scratch is an open search.
   Bug fixed: N=6 coarse->fine was unreliable (coarse h=0.05 failed ~8/9);
   direct fine solve from a good seed converges in ~60s.
+- 2026-06-08: tried 3 approaches (parallel agents) to REMOVE the curated-seed
+  "magic" (bend-order dependence), comparing least-magic/robust/fast:
+  * smaller dt: REFUTED. dt=0.004 is a window ~[0.008,0.004], not "smaller
+    better"; wrong bend order is genuinely uncontrollable at every dt (0.0005-
+    0.01); maxK grows as dt shrinks. (shipped dt=0.004 is the window's fine edge)
+  * minimal homotopy ladder: FALSIFIED. reproduces coarse class (-0.5 rev/link)
+    but not the fine bend order (whippier, thd 27 vs 23); N=6 won't converge
+    (0/3 ladder seeds). The pool/ranking/seed machinery is load-bearing.
+  * CONTROLLABILITY-AWARE TRAJOPT: SUCCESS. soft one-sided floor on bend-mode
+    excitation c(theta)=||M^-1(b*cos th)||^2_bend; from a NEUTRAL cold ladder
+    (no curated seed) -> trackable N=6, final 0.018 deg, AND peak pivot accel
+    7.3 m/s^2 (vs ~50 baseline, ~7x gentler -- removes the 5g catch spikes).
+    Remaining 'magic' = a small soft-floor sweep (a few levels), parallel,
+    principled. This ELIMINATES the seed dependence.
+  Adopted as repro/generate_n6.py (canonical, seed-free, RECOMMENDED).
+  simulate_n6.py now hands off to the upright balance LQR after swing-up (catch)
+  so verification is robust to gentle/late arrival. Final repro/ layout:
+  generate_n6.py (seed-free), stage2_n6.py (fast from seed), stage1_n5.py,
+  optimize_n6.py (helpers), simulate_n6.py (verify+render), seeds/ (backup).

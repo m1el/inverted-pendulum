@@ -25,12 +25,17 @@ CONTROLS = "repro/n6_controls.npz"
 OUT = sys.argv[1] if len(sys.argv) > 1 else "repro/n6_swingup.mp4"
 
 
-def simulate(c):
-    """Full-state closed loop: a = a_ff + K (z_nom - z). Returns t, theta, x."""
+def simulate(c, hold=6.0):
+    """Full swing-up THEN catch: track the nominal with TVLQR, then hand off to
+    the upright balance LQR and hold for `hold` seconds (the real catch). This
+    makes verification robust to how late the gentle swing-up arrives upright.
+    Returns t, theta, x."""
+    from pendulum.balance import upright_lqr
     n, dt, g = int(c["n"]), float(c["dt"]), float(c["g"])
     chain = Chain(n, g)
     theta, thetad = c["theta_nom"], c["thetad_nom"]
     a_ff, v_nom, Ks = c["a_ff"], c["v_nom"], c["K"]
+    wrap = lambda a: (a + np.pi) % (2 * np.pi) - np.pi
 
     y = np.concatenate([theta[0], thetad[0]]); v = 0.0; x = 0.0
     T, X, TS = [y[:n].copy()], [x], [0.0]
@@ -45,6 +50,18 @@ def simulate(c):
         T.append(y[:n].copy()); X.append(x); TS.append((k + 1) * dt)
         if not np.isfinite(y).all():
             raise SystemExit(f"simulation diverged at t={k*dt:.2f}s")
+    # ---- catch: hand off to the upright balance LQR and hold ----
+    Kb, _, _, _ = upright_lqr(chain, dt, r=0.01, q_theta=100)
+    t0 = len(Ks) * dt
+    for k in range(int(round(hold / dt))):
+        zb = np.concatenate([wrap(y[:n]), y[n:], [x, v]])
+        a = -float((Kb @ zb)[0])
+        ynew = rk4_step(chain, y, a, dt)
+        vnew = v + a * dt; x += 0.5 * (v + vnew) * dt
+        y, v = ynew, vnew
+        T.append(y[:n].copy()); X.append(x); TS.append(t0 + (k + 1) * dt)
+        if not np.isfinite(y).all():
+            raise SystemExit(f"catch diverged at t={t0 + k*dt:.2f}s")
     return np.array(TS), np.array(T), np.array(X)
 
 
