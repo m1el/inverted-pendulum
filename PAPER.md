@@ -145,20 +145,28 @@ conservative vs broadband quantization.
 | 3 | 5.0 | 0.0085 | 0.34 |
 | 4 | 7.0 | 9.8·10⁻⁵ | 0.014 |
 | 5 | 12.0 | 6.9·10⁻⁵ | 0.0025 |
-| 6 | — | 1.2·10⁻⁷ † | — |
-| 7 | — | 5.5·10⁻⁹ † | — |
-| 8 | — | 2.8·10⁻¹⁰ ‡ | — |
+| 6 | — | 1.2·10⁻⁷ † | 7.8·10⁻⁵ † |
+| 7 | — | 5.5·10⁻⁹ † | 1.4·10⁻⁵ † |
+| 8 | — | 2.8·10⁻¹⁰ ‡ | 2.5·10⁻⁶ ‡ |
 
 **† projected, not achieved.** N ≥ 6 swing-up succeeds only under full-state
-feedback (§4.2), so no realistic angle-only run exists to *measure* δθ. The N = 6–8
-entries are the **basin/κ precision predictor** δθ_max ≈ basin/κ (§3.2) — the
-angle resolution the catch into the upright basin *would* demand: **calculated**
-for N = 6, 7 (`results/basin_N6-7.json`: basin_alt 7.0·10⁻⁴ / 1.4·10⁻⁴ rad,
-κ_θ 5.9·10³ / 2.6·10⁴). **‡ N = 8 estimated** by log-linear extrapolation of the
-same series (≈ 20×/link; basin/κ and a direct fit agree to 2 sig figs). Swing
-time and δv are blank — both need a realized angle-only trajectory, which does
-not exist at these N (§5). The ≈ 20×/link collapse means angle sensing would
-have to resolve ~3·10⁻¹⁰ rad by N = 8.
+feedback (§4.2), so no realistic angle-only run exists to *measure* these. The
+N = 6–8 entries are the **basin/κ precision predictors** — the resolution the
+catch into the upright basin *would* demand:
+- **δθ_max ≈ basin/κ_θ** (§3.2), **calculated** for N = 6, 7
+  (`results/basin_N6-7.json`: basin_alt 7.0·10⁻⁴ / 1.4·10⁻⁴ rad, κ_θ 5.9·10³ / 2.6·10⁴);
+- **δv_max ≈ basin·dt/κ_v**, with κ_v the input-channel (pivot-accel) disturbance→θ
+  gain — **nearly flat in N** (0.089 → 0.117 over N = 6–8, confirming §3.3's flat
+  κ_v) and carrying the empirical **δv ∝ dt** (§3.3); dt = 0.01 here.
+
+**‡ N = 8 estimated** by log-linear extrapolation of basin_alt (≈ 4.9×/link); κ
+is computed directly. Both predictors are the adversarial worst case, so they run
+~2–30× *tighter* than the N = 1–5 measured tolerances (real quantization is partly
+self-dithered, §3.2) — read them as conservative floors, not point predictions.
+Swing time stays blank (no realized angle-only trajectory, §5). Two scalings
+diverge sharply: **δθ collapses ≈ 20×/link** (κ_θ compounds), reaching ~3·10⁻¹⁰ rad
+by N = 8, while **δv tightens only ≈ 5×/link** (κ_v flat) — so velocity stays the
+**non-binding** channel, ~10³–10⁴× looser than angle at these N.
 
 Swing-up needs finer precision than balance (the binding phase is the **catch** —
 entering the small upright basin), and the gap widens sharply at N=4–5. Two
