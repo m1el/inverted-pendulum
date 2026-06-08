@@ -37,9 +37,9 @@ Hanging → balanced upright, generated with **no curated seed** (a controllabil
 objective produces a trackable trajectory by construction); settles to 0.018°,
 peak pivot acceleration ≈ 7 m/s².
 
-<video src="https://github.com/m1el/inverted-pendulum/raw/main/media/swingup_N6_ctrbaware.mp4" muted autoplay loop playsinline controls width="420"></video>
+![N=6 controllability-aware swing-up](media/swingup_N6_ctrbaware.webp)
 
-*(if the video doesn't play inline: [media/swingup_N6_ctrbaware.mp4](media/swingup_N6_ctrbaware.mp4))*
+*(mp4: [media/swingup_N6_ctrbaware.mp4](media/swingup_N6_ctrbaware.mp4))*
 
 Pivot trajectory — position, velocity, acceleration (orange line = swing-up →
 catch handoff):
@@ -52,9 +52,9 @@ The same controls from a **perturbed** initial state (links ±10% of π off
 hanging, ±0.5 rad/s) — the TVLQR feedback rejects the deviation and still swings
 up. 16/16 seeds pass at ±10%; robust to ±0.8 rad (25% of π).
 
-<video src="https://github.com/m1el/inverted-pendulum/raw/main/media/swingup_N6_perturbed.mp4" muted autoplay loop playsinline controls width="420"></video>
+![N=6 swing-up from a perturbed start](media/swingup_N6_perturbed.webp)
 
-*(fallback: [media/swingup_N6_perturbed.mp4](media/swingup_N6_perturbed.mp4))*
+*(mp4: [media/swingup_N6_perturbed.mp4](media/swingup_N6_perturbed.mp4))*
 
 Pivot x, v, a — note the larger initial acceleration spike correcting the
 perturbed start, then the same swing:
