@@ -124,3 +124,22 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   we achieved N=5). N=6 BALANCE (Task 1) works fine: recovers from 6.9deg
   uniform lean (worst-case alternating basin ~3e-4 rad). Rendered
   media/balance_N6.gif. Per user: deliver balance animation + document finding.
+- 2026-06-08: dt experiment (user suggestion): N=6 swing-up DOES work under
+  FULL-STATE feedback at dt=0.004 (diverged at dt=0.01). Smaller dt keeps the
+  high-gain (maxK~7e4) TVLQR in its funnel through the near-uncontrollable
+  mid-swing. Realistic observer still can't feed 7e4 gains -> perfect-state only.
+  Rendered media/swingup_N6_perfectstate.mp4.
+- 2026-06-08: 2-STAGE REPRO built in repro/ (user request):
+  stage1_n5.py (from-scratch N=5 gen+select) -> seed; stage2_n6.py (homotopy
+  lift + DIRECT fine solve N=6, full-state trackability select at dt=0.004) ->
+  n6_controls.npz; simulate_n6.py verifies + renders mp4; optimize_n6.py
+  orchestrates both. Backed up the proven N=5 at repro/seeds/swingup_N5_GOOD.npz
+  (T=12, all links -0.5 rev). Stage 2 from the good seed RELIABLY reproduces the
+  trackable N=6 (final 0.069 deg, maxK=69448, VERIFICATION PASS) in ~1-2 min.
+  KEY FINDING (from user's bend-order question): N=5 closed-loop score is
+  necessary but NOT sufficient for trackable N=6 -- the N=5 BEND ORDER (relative
+  left/right link bending, straight-crossings) must match a controllable
+  topology. From-scratch N=5 seeds scoring 4/4 still failed to lift to trackable
+  N=6; reproducing the exact bend order from scratch is an open search.
+  Bug fixed: N=6 coarse->fine was unreliable (coarse h=0.05 failed ~8/9);
+  direct fine solve from a good seed converges in ~60s.

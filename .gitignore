@@ -3,3 +3,11 @@ runs_*.log
 .venv/
 __pycache__/
 runs/
+repro/pool/
+repro/pool_n5/
+repro/pool_n6/
+repro/n6_controls*.npz
+repro/seed_N5.npz
+repro/*.mp4
+results/trajectories/cand_*/
+repro/ladder_N*.npz
