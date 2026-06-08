@@ -162,3 +162,22 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   so verification is robust to gentle/late arrival. Final repro/ layout:
   generate_n6.py (seed-free), stage2_n6.py (fast from seed), stage1_n5.py,
   optimize_n6.py (helpers), simulate_n6.py (verify+render), seeds/ (backup).
+- 2026-06-08: extended controllability-aware approach to N=7 (repro/generate_nN.py,
+  general-N). Seeded N=7 from our clean N=6 ctrb-aware trajectory (gentle,
+  thd~20) to avoid whippy cold-ladder lifts. Result: N=7 NOT trackable.
+  FRONTIER WALL, with diagnosis:
+  * Even gentle, well-controlled N=7 nominals (cmin~0.81, thd~19) diverge under
+    full-state TVLQR at EVERY dt in [0.004, 0.015].
+  * NOT a gain-magnitude wall: a TVLQR weight sweep (R 0.1..50, maxK down to
+    ~4000 -- BELOW N=6's 68k) still diverges at all (r,dt). So no gain stabilizes
+    the N=7 trajectory.
+  * CAUSE: the SCALAR controllability proxy (aggregate rigid-vs-bending split)
+    that sufficed for N=6 is INSUFFICIENT for N=7. A 7-link chain has 6 bending
+    modes; flooring the aggregate bend-excitation does not ensure EACH mode is
+    individually excitable from the single pivot. One mode can be ~uncontrollable
+    mid-swing while cmin looks healthy -> unstabilizable by any TVLQR.
+  * Honest frontier: N<=5 full swing-up+balance (real observer); N=6 full-state
+    swing-up, seed-free via scalar ctrb shaping; N=7 beyond this architecture.
+    A per-mode (min-singular-value over all bending modes) controllability
+    constraint would be the principled next step -- significantly harder NLP.
+  repro/generate_nN.py works as the general-N generator (reproduces N=6).
