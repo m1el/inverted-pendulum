@@ -13,7 +13,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter
+from matplotlib.animation import FuncAnimation, PillowWriter, FFMpegWriter
 
 from pendulum.dynamics import Chain
 
@@ -68,15 +68,22 @@ def gif(t, theta, x, out_gif, fps=25, speed=1.0):
         return line, txt
 
     anim = FuncAnimation(fig, update, frames=len(idx), blit=False)
-    anim.save(out_gif, writer=PillowWriter(fps=fps))
+    if str(out_gif).lower().endswith(".mp4"):
+        # H.264, yuv420p for broad playback (iOS/QuickTime/browsers)
+        writer = FFMpegWriter(fps=fps, codec="libx264", bitrate=2400,
+                              extra_args=["-pix_fmt", "yuv420p"])
+    else:
+        writer = PillowWriter(fps=fps)
+    anim.save(out_gif, writer=writer)
     plt.close(fig)
 
 
 if __name__ == "__main__":
     src, out = sys.argv[1], sys.argv[2]
+    speed = float(sys.argv[3]) if len(sys.argv) > 3 else 1.0
     t, theta, x = load(src)
-    if out.endswith(".gif"):
-        gif(t, theta, x, out)
+    if out.lower().endswith((".gif", ".mp4")):
+        gif(t, theta, x, out, speed=speed)
     else:
         filmstrip(t, theta, x, out)
     print(f"wrote {out}")
