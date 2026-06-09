@@ -181,3 +181,42 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
     A per-mode (min-singular-value over all bending modes) controllability
     constraint would be the principled next step -- significantly harder NLP.
   repro/generate_nN.py works as the general-N generator (reproduces N=6).
+- 2026-06-09: reconfiguration challenges, bend-order topology, and control jerk.
+  LINK-FLIP (upright -> one link inverted -> upright; repro/flip_one_n6.py,
+  N-generic; precision via repro/flip_quant.py): a there-and-back between two
+  UNSTABLE equilibria, strictly harder than swing-up because it departs+returns to
+  the dead-straight upright (near-uncontrollable) twice. Trackable N<=4 (all links),
+  N=5 (middle links only, maxK 1.8e5 > N=6 swingup's 6.8e4), N=6 NONE (over the
+  wall). Full-state quantization thresholds: dtheta collapses ~6-9x/link
+  (1.9e-1 -> 4e-4 rad, N2->5), dv stays non-binding -- same precision law as
+  balance/swing-up.
+  FOLD-IN-HALF (upper N/2 links -> pi; N=6 [0,0,0,pi,pi,pi]; repro/fold_half.py):
+  MUCH easier than a single-link flip and TRACKABLE at N=6 (dt=0.01, final 0.079
+  deg, maxK 6.5e4) where the 1-link flip fails entirely. The folded target is less
+  unstable and the coordinated crease keeps the chain bent/controllable throughout
+  (cmin 0.85, never near-straight). KEY: difficulty is set by the PATH's
+  controllability, not the link count or how "large" the reconfiguration looks.
+  BEND ORDER -- made precise (scripts/bend_topology.py, written up PAPER 4.5). For
+  absolute angles theta_i, joint bend angles beta_i = theta_{i+1}-theta_i; bend
+  order = (W, F): W = per-link winding (unwrap delta-theta /2pi; homotopy invariant),
+  F = per-joint sign-word of beta_i's zero-crossings (the fold/reversal sequence).
+  Trackable iff F never sends all beta_i through 0 at once (c(theta) floor = smooth
+  surrogate). REPRODUCIBILITY across all stable N=4,5,6 solutions: W is UNIVERSAL
+  (-0.5 rev/link; other winding classes are exactly the untrackable ones ->
+  trackability SELECTS the class, reproduced 100%). F is a CONSERVED FAMILY not a
+  point: sign pattern largely shared within a method (4/5 ctrb-aware N=6 share
+  (+,-,-,+,+)), crossing counts vary by a few. So reproduced as a topological class
+  with a continuum of fine orders inside -- why the coarse class transfers across N
+  but the fine (seed-encoded) order does not.
+  CONTROL JERK (repro/swingup_n6_lowjerk.py, written up PAPER 4.6). N=6 swing-up
+  jerk is FEEDBACK-induced (closed-loop a jerk RMS 19.8 vs feedforward 7.8 = 2.5x;
+  peak 218), concentrated in the SWING (RMS 23) not the catch (1.3 -- error tiny
+  there despite 6.8e4 gains). Tried to remove it with a jerk-penalizing input-
+  augmented TVLQR (state += a, input = jerk u=adot, so a(t) is C^1): FAILS. Any
+  penalty heavy enough to smooth the swing DIVERGES (the near-uncontrollable swing
+  needs the bandwidth); the stable region is jerkier than baseline; time-varying
+  (smooth-swing/permissive-catch) also diverges. Jerk = signature of high-bandwidth
+  stabilization of a barely-controllable plant. ONLY lever is the path: feedback
+  jerk amplification tracks controllability (fold cmin 0.85 -> 1.1x, swing-up cmin
+  0.73 -> 2.5x). Low-jerk policy = more-controllable trajectory, not a smoother
+  controller.

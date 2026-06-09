@@ -298,6 +298,79 @@ it never enters the near-straight danger zone. So the N=6 fold even succeeds at 
 quantity is the path's controllability, not the link count or how "large" the
 reconfiguration looks** — a 3-link fold beats a 1-link flip.
 
+### 4.5 Bend order — definition and reproducibility
+
+"Bend order" has been used loosely above; here it is made precise. Write the
+configuration as absolute link angles θ_i and define the **joint bend angles**
+β_i(t) = θ_{i+1}(t) − θ_i(t) — the signed fold at joint i (β_i = 0 ⇔ links i, i+1
+collinear). A swing-up is a path θ(t) from the hang (θ_i = π) to upright (θ_i = 0);
+its **bend order** is the pair **(W, F)**:
+
+- **W — coarse (winding) class:** W_i = ([unwrap θ_i]ᵀ − [unwrap θ_i]₀)/2π, the net
+  revolutions each absolute link angle makes. W is a **homotopy invariant** of the
+  path (you cannot change it without rotating a link through a full turn).
+- **F — fine (fold) sequence:** for each joint, the **sign word** of β_i(t) read off
+  its zero-crossings (with a small deadband) — the ordered list of bend-reversals
+  (straighten-then-refold-the-other-way events). Summarized by the per-joint
+  **crossing count** and the inter-crossing **sign pattern**.
+
+Two swing-ups share a bend order iff their W agree and their F agree up to (i) the
+global mirror θ → −θ (which flips every β sign) and (ii) time-reparametrization.
+Controllability is a property of F: a trajectory is trackable only if its fold
+sequence **never drives all β_i through 0 at once** (the dead-straight,
+near-uncontrollable configuration). The bend-mode excitation
+c(θ) = ‖M⁻¹(b⊙cos θ)‖²_bend used as the trajopt floor (§4.2) is exactly a smooth
+surrogate for distance from that all-β-zero set.
+
+**What reproduces (`scripts/bend_topology.py`, all stable N = 4, 5, 6 solutions —
+independent solvers, floors, seeds):**
+
+- **W is universal — −0.5 rev for *every* link.** The chain unwinds exactly a half
+  turn per link, hang→upright. The other winding classes the solver also finds
+  (e.g. +0.5/link, or −1.5 on the base link) are precisely the **untrackable** ones:
+  trackability *selects* W = (−½)ⁿ. This coarse class is reproduced 100% of the time.
+- **F is a conserved family, not a point.** Within W = (−½)ⁿ the fold sign-pattern is
+  largely shared *within a method* — 4 of 5 controllability-aware N=6 solutions share
+  bend-sign (+,−,−,+,+), an S-shaped shimmy that intensifies toward the tip — while
+  exact crossing counts vary by a few (N=6 per joint: ≈ 9–10, 7–13, 9–17, 13–18,
+  13–20). A different solver (the original N=6) lands in a different fine class at the
+  same W.
+
+So the bend order is reproduced **as a topological class** (winding forced; "keep
+shimmying, never dead-straight" forced), with a **continuum of fine fold-sequences
+inside it**. This is why the coarse class transfers across N via the homotopy ladder
+but the fine order does not — the latter is the load-bearing structure a hand-curated
+seed encodes (§4.2).
+
+### 4.6 Control jerk near the uncontrollable frontier
+
+The N=6 full-state swing-up looks jerky mid-swing. Splitting the applied pivot
+acceleration a(t) into feedforward + TVLQR feedback:
+
+- the **feedforward** a_ff is smooth (jerk RMS 7.8, |a| ≤ 7.3 — the trajopt already
+  penalizes ∫ȧ²); the **closed-loop** a has jerk RMS 19.8, peak 218 — a **2.5×**
+  feedback amplification, concentrated in the *swing* (RMS 23) not the *catch* (1.3).
+  Near upright the tracking error is tiny, so even the 6.8·10⁴ gains add little jerk;
+  mid-swing the feedback is fighting a barely-controllable plant.
+
+**Can a policy remove it? Not at the feedback layer.** We built the principled
+smoother — a **jerk-penalizing input-augmented TVLQR**: augment the state with the
+pivot acceleration (z = [θ, θ̇, v, a]) and make the control the jerk u = ȧ, so a(t) is
+C¹ and jerk is penalized directly (`repro/swingup_n6_lowjerk.py`). It **fails**: any
+penalty heavy enough to smooth the swing **destabilizes the rollout** (diverges), and
+the stable region yields *more* jerk than baseline, not less — the near-uncontrollable
+swing genuinely **needs the control bandwidth**. A time-varying penalty (smooth swing,
+permissive catch) diverges identically. **The jerk is the unavoidable signature of
+high-bandwidth stabilization of a plant barely controllable from one pivot.**
+
+**The only lever is the trajectory's controllability.** Feedback jerk amplification
+tracks the bend-excitation margin: the highly-controllable fold-in-half (cmin 0.85)
+has feedback adding just **1.1×** jerk versus the swing-up's **2.5×** (cmin 0.73). A
+more-controllable nominal needs less corrective feedback, so it is intrinsically
+smoother. "Optimize a policy for low jerk" therefore means **shape the path to be more
+controllable** (and keep the feedforward smooth) — the same bend-floor objective that
+makes high N trackable at all — not penalize jerk at the controller.
+
 ---
 
 ## 5. What worked, what was a dead end
@@ -317,6 +390,9 @@ reconfiguration looks** — a 3-link fold beats a 1-link flip.
 - Anti-alignment penalty (a controllability *proxy* that just penalized straightness) — backfired: more violent, not more controllable.
 - Hard/aggressive controllability floors — distort into a *different* untrackable bend order.
 - Scalar controllability floor at N=7 — insufficient for the richer mode structure.
+- Jerk-penalizing (input-augmented) TVLQR to smooth the swing — refuted; any
+  effective penalty diverges, the swing *needs* the bandwidth (§4.6). Path
+  controllability, not the controller, is the jerk lever.
 
 **Methodological lesson recorded:** with `print_level=0` IPOPT solves are opaque;
 progress visibility (inf_pr/inf_du, per-candidate file counts, stage logs) and
