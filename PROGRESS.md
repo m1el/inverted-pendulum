@@ -504,3 +504,11 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   the SMOOTH-SLOW corner is officially UNCLAIMED after two failed routes;
   candidate generator for the future: band-limited brake policy in
   reverse_fall.py (smooth + exact by construction).
+- 2026-06-11 (cont): ONE-FLIP #2 DEMOTED to swing-only. Its closed-loop
+  arrival error (0.42 deg, vs flagship 0.03 deg) exceeds the N=7 upright
+  basin -> the balance-LQR catch diverges (simulate_n6 FAIL at t=12.05s);
+  funnel run void (catch in its success criterion). Status: swing verified
+  (8/8 @ +-0.005 rad), maneuver incomplete -- the residual defect 2.9e-4
+  costs not just funnel width but catchability. Flagship unchanged.
+  (Also: 4th pgrep self-match of the session, waiter killed -- per user
+  CLAUDE.md rule, PID-from-launch only.)

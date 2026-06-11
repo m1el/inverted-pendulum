@@ -381,6 +381,13 @@ funnel width and an outright closure at one mid-flip phase (survivable
 end-to-end only because upstream deviations arrive exponentially contracted).
 At the frontier, the trajectory-class choice dwarfs the dimensionality penalty.
 
+A second one-flip (higher coupling 0.594 but whip 25) confirms the ordering of
+effects: at the same h = 0.0025 its extra violence leaves a 4.5× larger
+residual defect (2.9·10⁻⁴), which halves the funnel (8/8 at ±0.005 rad, 4/8 at
+±0.02) **and** pushes its arrival error (0.42°) outside the upright basin — the
+balance catch diverges, demoting it to swing-only. Within the fast class,
+**defect grade dominates coupling** for both funnel width and catchability.
+
 ### 4.4 Link-flip — point-to-point between unstable equilibria
 
 A different task class: not hang→upright, but **upright → one link inverted →
