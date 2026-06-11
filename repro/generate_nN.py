@@ -31,10 +31,11 @@ G = 9.81
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 7
 NW = int(sys.argv[2]) if len(sys.argv) > 2 else min(12, mp.cpu_count() - 2)
 A_MAX, V_MAX = 25.0, 14.0
+TD_MAX = 12.0                       # link-rate (whip) bound for trackability
 SETTLE_FRAC, SETTLE_BAND = 0.08, 0.15
 # horizon for the N rung, soft-floor levels, and dt window to sweep
 T_N = {6: 15.0, 7: 17.0}.get(N, 2.0 * N + 3.0)
-FLOORS = (0.6, 0.7, 0.8, 0.9)
+FLOORS = tuple(round(float(f), 2) for f in np.arange(0.40, 0.98, 0.04))  # 15 levels -> ~15 cores + wider bend-order search
 DTS = (0.004, 0.005, 0.006, 0.008, 0.010)  # N>=7: gains grow as dt shrinks, so sweep LARGER dt
 POOL = pathlib.Path(f"repro/pool_ctrb_n{N}")
 OUT = f"repro/n{N}_controls.npz"
@@ -64,6 +65,7 @@ def solve_ctrb_aware(n, T, K, w_ctrb, floor_ctrb, init_guess, max_iter=2500, tol
     opti.subject_to(TH[:, K] == tgt); opti.subject_to(TD[:, K] == 0); opti.subject_to(VV[0, K] == 0)
     opti.subject_to(opti.bounded(-A_MAX, ca.vec(AC), A_MAX))
     opti.subject_to(opti.bounded(-V_MAX, VV, V_MAX))
+    opti.subject_to(opti.bounded(-TD_MAX, ca.vec(TD), TD_MAX))   # bound link whip (trackability)
     kset = int(round((1 - SETTLE_FRAC) * K))
     for k in range(kset, K + 1):
         opti.subject_to(opti.bounded(tgt - SETTLE_BAND, TH[:, k], tgt + SETTLE_BAND))

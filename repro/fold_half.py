@@ -33,6 +33,7 @@ G = 9.81
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 6
 NW = int(sys.argv[2]) if len(sys.argv) > 2 else min(16, mp.cpu_count() - 2)
 A_MAX, V_MAX = 30.0, 14.0
+TD_MAX = 12.0                                        # link-rate (whip) bound for trackability
 T_TOTAL = {4: 8.0, 5: 11.0, 6: 16.0}.get(N, 2.5 * N + 1.0)
 SETTLE_FRAC, SETTLE_BAND = 0.10, 0.15
 FLOORS = (0.5, 0.6, 0.7)
@@ -88,6 +89,7 @@ def solve(floor, w_ctrb=100.0, max_iter=5000, tol=1e-7):
     opti.subject_to(TH[:, kmid] == theta_B); opti.subject_to(TD[:, kmid] == 0)
     opti.subject_to(opti.bounded(-A_MAX, ca.vec(AC), A_MAX))
     opti.subject_to(opti.bounded(-V_MAX, VV, V_MAX))
+    opti.subject_to(opti.bounded(-TD_MAX, ca.vec(TD), TD_MAX))   # bound link whip
     kset = int(round((1 - SETTLE_FRAC) * K))
     for k in range(kset, K + 1):
         opti.subject_to(opti.bounded(theta_A - SETTLE_BAND, TH[:, k], theta_A + SETTLE_BAND))

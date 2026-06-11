@@ -18,11 +18,18 @@ geometry. We then push the swing-up frontier: N ≤ 5 succeeds with realistic
 angle-only sensing; **N = 6** succeeds only under full-state feedback, and we
 remove its dependence on a hand-curated trajectory seed using a
 **controllability-aware trajectory optimization** (robust to ±10% initial-state
-perturbation); **N = 7** is shown to lie
-beyond the architecture, with a diagnosis (a scalar controllability proxy cannot
-guarantee all bending modes stay excitable). Headline: required angle precision
-tightens ≈ 6–20× per added link; sensing — not actuation — is the binding
-constraint; and swing-up controllability, not compute, is the wall at high N.
+perturbation); **N = 7** — initially diagnosed as beyond the architecture — is
+**solved** (full-state, dt = 0.002) by **predecessor enumeration**: time-reversed
+braked falls from upright yield exact, seed-free nominals, 44/46 of which track,
+with measured robustness (±0.78 rad initial angles; δθ = 8·10⁻⁶ rad with a
+quantized 5 s catch). The trackable N = 7 class *winds* (links make 5–26
+revolutions): no-rotation N = 7 trajectories exist (constructive NLP solutions)
+but are unstabilizable from the pivot — their worst bending modes lose ~2.5×
+input coupling exactly in the unstable final third. Headline: required angle
+precision tightens ≈ 6–20× per added link; sensing — not actuation — is the
+binding constraint; and the wall at high N is the controllability of the
+*path family*, not link count or compute — at N = 7 trackability demands
+winding.
 
 ---
 
@@ -146,8 +153,16 @@ conservative vs broadband quantization.
 | 4 | 7.0 | 9.8·10⁻⁵ | 0.014 |
 | 5 | 12.0 | 6.9·10⁻⁵ | 0.0025 |
 | 6 | — | 1.2·10⁻⁷ † | 7.8·10⁻⁵ † |
-| 7 | — | 5.5·10⁻⁹ † | 1.4·10⁻⁵ † |
+| 7 | 56.7 ⁂ | 5.5·10⁻⁹ † | 1.4·10⁻⁵ † |
 | 8 | — | 2.8·10⁻¹⁰ ‡ | 2.5·10⁻⁶ ‡ |
+
+**⁂ N = 7 realized full-state** (reverse-fall, §4.3; RK4-consistent TVLQR at
+dt = 0.002); its *full-state* quantization thresholds (angles quantized, rates
+exact — the flip-table convention of §4.4, not this table's angle-only
+protocol) are **measured**: δθ = 2·10⁻⁵ rad, δv = 2.7·10⁻⁴ m/s including a 5 s
+quantized balance hold (6.4·10⁻⁴ / 1.0·10⁻² for the swing alone — the sustained
+catch binds, as §3.2 predicts; N = 6 refined: 3.1·10⁻⁵ / 1.9·10⁻² with hold).
+The angle-only floors above remain projections.
 
 **† projected, not achieved.** N ≥ 6 swing-up succeeds only under full-state
 feedback (§4.2), so no realistic angle-only run exists to *measure* these. The
@@ -213,19 +228,149 @@ remain robust to **±0.8 rad (25% of π)** initial angle error. This is the *eas
 direction: the hanging start is near-stable, so the funnel is widest there —
 opposite the mid-swing near-uncontrollable patch that sets the difficulty.
 
-### 4.3 N = 7 — beyond the architecture
+**The dt window is a nominal-consistency artifact.** The evaluation pipeline
+resamples the h = 0.01 trapezoidal-collocation nominal onto the simulation grid
+by linear interpolation; the resulting one-step defect (RK4 from nominal state k
+under the applied control vs nominal state k+1) is ~10⁻³ rad/step — a persistent
+disturbance scaled by gains up to ~10⁵. Re-solving the *same* candidate at
+**h = 0.005** (one-step defect ~5·10⁻⁵) turns an everywhere-untrackable N=6
+nominal into one **trackable at every dt ∈ [0.002, 0.012]**, with a funnel
+measured ≥ ±0.5 rad + ±0.8 rad/s at both dt = 0.004 and dt = 0.01 (wider than
+the unrefined trackable candidates: refinement widens the funnel, it does not
+trade robustness for accuracy). Two cautionary findings from the same study
+(`repro/consistent_nominal.py`): (i) a *more accurate* resampler (cubic-Hermite
+dense output, 9× closer to the true flow) tracks strictly *worse* at h = 0.01 —
+the linear interpolant's defect is a ~100 Hz zero-mean sawtooth that
+self-dithers away, while the smooth Hermite defect forces the barely-controllable
+direction coherently; near the stability knife-edge it is the defect's
+**spectrum**, not magnitude, that decides survival. (ii) A defect-free nominal
+rolled out from its exact start keeps the error at machine epsilon — such a test
+only proves local stability and says nothing about the funnel; all trackability
+claims here are therefore backed by perturbed-start protocols.
 
-Seeding N=7 from the clean N=6 trajectory and applying the same controllability
-floor, **no N=7 candidate is trackable at any dt ∈ [0.004, 0.015]**. Crucially:
+### 4.3 N = 7 — solved by predecessor enumeration; winding is essential
 
-- it is **not a gain-magnitude wall** — a TVLQR weight sweep drove maxK below
-  N=6's (~4,000) and it still diverges at every (R, dt); **no gain stabilizes the
-  N=7 trajectory**.
-- **Diagnosis:** the *scalar* controllability proxy that sufficed for N=6 is
-  insufficient at N=7. A 7-link chain has **6 bending modes**; flooring the
-  *aggregate* bend-excitation does not guarantee *each individual mode* stays
-  excitable from the single pivot. One mode can be ~uncontrollable mid-swing while
-  the aggregate looks healthy — unstabilizable by any TVLQR.
+**The fast NLP class hits a real wall.** Seeding N=7 from the clean N=6
+trajectory and applying the same controllability floor, **no fast (T ≈ 17 s)
+NLP candidate is trackable at any dt ∈ [0.002, 0.015]**, under any resampler,
+and the wall survives artifact elimination: a candidate mesh-refined to
+h = 0.005 (one-step defect 2.3·10⁻⁵) still diverges everywhere. It is **not a
+gain-magnitude wall** — TVLQR weight sweeps (maxK driven below N=6's ~4,000)
+diverge at every (R, dt). The original diagnosis stands for this class: flooring
+the *aggregate* bend-excitation does not keep *each* of the 6 bending modes
+individually excitable from one pivot.
+
+**The solution: enumerate the predecessors of upright (reverse falls).** The
+dynamics are time-reversible (the EOM is even in θ̇), so a *braked fall* from
+upright + ε·(mixture of unstable-mode directions), landed at the hang by a
+gentle energy brake (|a| ≤ 4; a saturated brake never settles) plus a hang-LQR,
+time-reversed, is an **exact** swing-up nominal: zero collocation/interpolation
+defect (generated by the same RK4/ZOH as the simulator, at the simulation dt),
+no settle band, no NLP, no seed. The arrival-shape family at upright *is* the
+fall-departure family — a ~7-dimensional, directly enumerable space
+(`repro/reverse_fall.py`; seconds per candidate).
+
+- **N = 6 validation:** 16/36 arrival shapes track at dt = 0.004; the trackable
+  family arrives along the **slow** unstable modes (λ = 3.6, 1.5 — both signs;
+  all four fast-mode arrivals fail).
+- **N = 7: 44/46 slow-4-mode mixtures track at dt = 0.002** (14/46 at 0.003,
+  0/46 at ≥ 0.004 — the dt ladder narrows by ~2× per link, and the original
+  sweep stopped at 0.004). Winner: final 0.010°, T = 56.7 s, max|a_ff| = 18.9,
+  max|v| = 4.3, maxK = 1.7·10⁵.
+- **Half of that dt requirement is controller-model mismatch, not physics.**
+  The TVLQR's (Ad, Bd) via matrix exponential of the linearized continuous
+  model differs from the simulator's RK4 step map by ~1% mid-swing — at
+  10⁵ gains that eats the margin. Discretizing the gains against the **RK4
+  Jacobian itself** (controller model ≡ simulator), the same N=7 nominal
+  passes the full 16/16 protocol at **dt = 0.004 and 0.003** (new wall:
+  0.005), and 14/46 of the dt = 0.004-native pool tracks (was 0/46) — the same
+  timestep the original N=6 result needed. Caveat: at dt = 0.004 the arrival
+  error (2.8°) exceeds the ~1.4·10⁻⁴ rad upright basin, so the *catch* fails —
+  coarse dt buys swing trackability, not the complete maneuver; the flagship
+  control (swing + held catch) runs at dt = 0.002. The no-rotation
+  nominal is *not* rescued (its failure is modal, §above); and a 96-point
+  blind Q/R/QF search on N=6 is a null (all candidates and the baseline
+  saturate at the ±0.8 rad hang-basin cap): fix the model, not the weights.
+- **Measured robustness** (8-seed all-pass bisection): initial perturbation
+  **±0.78 rad** angles-only (±0.65 with ±1.6× rates) — the same "25% of π" class
+  as N=6, and **16/16 at the ±0.1π + ±0.5 rad/s protocol**; full-state
+  quantization δθ = 7.7·10⁻⁶ rad, δv = 1.05·10⁻⁴ m/s including a 5 s quantized
+  catch (§4.1 note).
+
+**Winding is essential at N = 7.** Every trackable N=7 trajectory found winds
+(links make 5.5–26 net revolutions and whip to 37–62 rad/s). Imposing the
+classical no-rotation property (θ ∈ [−1, 5.9]: hang-overshoot allowed, no link
+completes a turn) on a slow (T = 25 s), gentle (|θ̇| ≤ 12), controllability-
+floored NLP **solves** — producing the best-conditioned N=7 trajectory of the
+project (aggregate bend-excitation cmin ≈ 1.0) — but the result is
+**unstabilizable**: untrackable at every (dt, resampler, mesh h = 0.01/0.0075),
+0/24 across a TVLQR weight sweep (R ∈ [0.01, 10] × terminal scale × dt), and
+its open-loop replay departs at t = 16.2 s = 0.65 T. The mechanism is measured
+(windowed per-mode input coupling, worst mode):
+
+| window | no-rotation (untrackable) | reverse-fall (trackable) |
+|---|---|---|
+| t < 0.65 T | 0.30 | 0.42 |
+| 0.65–0.9 T | **0.13** | **0.36** |
+| > 0.9 T | **0.12** | **0.27** |
+
+The no-rotation path's worst bending modes go ~2.5× deafer to the pivot exactly
+in the unstable final third (the open-loop departure point); the winding path
+keeps all six modes ≥ 0.27 throughout — spinning links cross the mode-deaf
+configurations transversally at speed instead of dwelling near them. The
+aggregate floor is thus provably the wrong surrogate at N = 7 (cmin ≈ 1.0
+coexists with a worst-mode coupling of 0.12).
+
+**The corridor's coupling ceiling, measured** (`repro/permode_hard_n7.py`).
+Imposing the coupling requirement directly — hard windowed-RMS per-mode floors
+Σ(v_jᵀu)² ≥ c²Σ‖u‖² per 1.5 s window over t/T ∈ [0.55, 0.95], warm-started from
+a feasible no-rotation trajectory (baseline c₀ = 0.079) — brackets how much
+coupling the corridor can buy at any price: **c ≤ 0.09 feasible** (solver finds
+it in minutes; still untrackable, peak worst-mode pinned ≈ 0.13), **c = 0.11–
+0.13 undecided** at 6,000 iterations (the boundary), **c ≥ 0.15 certified
+locally infeasible** (IPOPT restoration convergence, three independent floors;
+soft-penalty versions agree at 0/4). The no-rotation corridor's coupling
+ceiling is ≈ 0.1 — roughly a third of what the trackable winding class carries
+through the same windows. Within this corridor the coupling requirement is not
+expensive; it is **unpurchasable** — the quantitative content of "winding is
+essential" (modulo the locality of NLP infeasibility certificates).
+
+**Minimal winding is optimal: the one-flip.** Sweeping bend-bounded free-turn
+classes (joint bends |β| ≤ 92–120° — "no convolution" — whip ≤ 25, winding free
+or prescribed; 30 solves) shows the coupling budget *peaks at one extra
+revolution*: 1-turn solutions measure 0.34–0.59 worst-mode coupling, 2-turn
+0.19–0.30, 0-turn ≤ 0.13 (the certified ceiling). Mechanism: a single fast pass
+crosses the mode-deaf straight orientations transversally (a millisecond
+blackout ≪ 1/λ — harmless by the data-rate argument), while a second revolution
+forces sustained phase-aligned rotation — rigid-mode motion that crowds bending
+shimmy out of the fixed time/whip budget. An energy floor (E ≥ V_up + 15 J over
+the crossing) is needed to stop the optimizer from *creeping* over the top
+(min-effort loves slow crossings, which dwell deaf — caught by visual
+inspection, invisible to a late-window-only metric).
+
+**The one-flip is trackable — at a measured price.** The defect law governs:
+this violent class needs **h = 0.0025** before its nominal reaches the
+trackable defect grade (6.3·10⁻⁵; at h = 0.005 it still carries 1.4·10⁻³ —
+defects per mesh scale ~30× with trajectory violence). There, the gate opens:
+**16/16 at ±0.02 rad ± 0.032 rad/s** (final 0.029°), 11/16 at ±0.05, 0/16 at
+the full ±0.1π protocol; maxK = 7.2·10⁵
+(`repro/n7_oneflip_controls.npz`; the verified iterate was an IPOPT max_iter
+"failure" feasible to 10⁻⁸ — gate-any-feasible-iterate is load-bearing
+methodology). The funnel-along-the-trajectory comparison
+(`media/funnel_compare_N4-7.png`; per-phase worst-case-kick bisection) places
+the two N=7 solutions at opposite ends of a sharp trade:
+
+| flagship | start funnel | tightest | median | character |
+|---|---|---|---|---|
+| N=6 refined (15 s) | 0.80 rad | 6.3·10⁻⁶ | 5.8·10⁻² | baseline |
+| N=7 slow (57 s, 9 rev) | **0.95 rad** | 3.9·10⁻⁶ | 6.9·10⁻³ | robust; erratic, bang-bang control |
+| N=7 one-flip (12 s, 1 rev) | 0.084 rad | **closes (< 10⁻⁶)** | 1.7·10⁻⁴ | elegant; precision-only |
+
+The catch bottleneck scales gently with N (~10×/link — the basin/κ law measured
+along whole trajectories); *choosing the fast class* costs ~340× in median
+funnel width and an outright closure at one mid-flip phase (survivable
+end-to-end only because upstream deviations arrive exponentially contracted).
+At the frontier, the trajectory-class choice dwarfs the dimensionality penalty.
 
 ### 4.4 Link-flip — point-to-point between unstable equilibria
 
@@ -342,6 +487,14 @@ inside it**. This is why the coarse class transfers across N via the homotopy la
 but the fine order does not — the latter is the load-bearing structure a hand-curated
 seed encodes (§4.2).
 
+**Scope correction (N = 7).** The claim "trackability selects W = (−½)ⁿ" is a
+property of the fast NLP class at N ≤ 6, **not** of trackability per se — and at
+N = 7 it *inverts*. The trackable N=7 reverse-fall trajectories (§4.3) live in
+far-away winding classes (5.5–26 net revolutions per chain) and pass the full
+robustness protocol, while every W = (−½)ⁿ-corridor N=7 trajectory tested —
+fast or slow, coarse or refined — is unstabilizable. At the frontier, winding
+stops being forbidden and becomes required.
+
 ### 4.6 Control jerk near the uncontrollable frontier
 
 The N=6 full-state swing-up looks jerky mid-swing. Splitting the applied pivot
@@ -380,19 +533,35 @@ makes high N trackable at all — not penalize jerk at the controller.
 - Implicit-dynamics collocation + homotopy in N (made N ≥ 4 tractable).
 - Predictor-corrector observer (made high-N realistic swing-up trackable).
 - basin × κ decomposition (explains and predicts the precision scaling).
-- Smaller dt (dt = 0.004) as the N=6 *full-state* enabler.
+- Smaller dt (dt = 0.004) as the N=6 *full-state* enabler — later traced to
+  nominal truncation error: at mesh h = 0.005 the dt dependence disappears (§4.2).
 - **Controllability-aware trajopt** (removed the curated-seed dependence at N=6; gentler control).
-- Mesh refinement (coarse→fine warm starts) and bounded-iteration parallel solves (kept the search fast/observable).
+- **Reverse-fall generation** (predecessor enumeration via time-reversal) — exact,
+  seed-free, NLP-free nominals; solved N=7 full-state (§4.3).
+- **Windowed per-mode coupling diagnostic** — turned the N=7 "winding essential"
+  claim from inference into measurement (§4.3).
+- Mesh refinement (coarse→fine warm starts) and bounded-iteration parallel solves
+  (kept the search fast/observable); mesh *ladders* (0.01→0.0075→0.005) where
+  one-jump refinement stalls; IPOPT `output_file` logs for live inf_pr/inf_du.
 
 **Dead ends (informative)**
 - Smaller dt as a *general robustness* lever — refuted; it's a narrow window, not "smaller is better."
 - Naive minimal homotopy ladder for N=6 — can't reproduce the fine bend order.
 - Anti-alignment penalty (a controllability *proxy* that just penalized straightness) — backfired: more violent, not more controllable.
 - Hard/aggressive controllability floors — distort into a *different* untrackable bend order.
-- Scalar controllability floor at N=7 — insufficient for the richer mode structure.
+- Scalar controllability floor at N=7 — insufficient for the richer mode structure
+  (now measured: aggregate cmin ≈ 1.0 coexists with worst-mode coupling 0.12, §4.3).
 - Jerk-penalizing (input-augmented) TVLQR to smooth the swing — refuted; any
   effective penalty diverges, the swing *needs* the bandwidth (§4.6). Path
   controllability, not the controller, is the jerk lever.
+- Hermite dense-output resampling as a trackability fix — backwards at h = 0.01:
+  the *more accurate* nominal tracks worse (its smooth defect forces the weak
+  direction coherently; the linear sawtooth self-dithers, §4.2). Fix the mesh,
+  not the interpolant.
+- No-rotation N=7 (classical corridor) — *exists* but unstabilizable: 0/24 weight
+  sweep; winding is essential (§4.3).
+- Saturated (|a| = 25) braking for reverse falls — never lands; gentle (|a| ≤ 4)
+  braking settles in ~45 s.
 
 **Methodological lesson recorded:** with `print_level=0` IPOPT solves are opaque;
 progress visibility (inf_pr/inf_du, per-candidate file counts, stage logs) and
@@ -407,11 +576,24 @@ re-learning that silence ≠ progress.
   theory; N = 6–7 basin/κ computed; fp32-θ shown sufficient through N=7.
 - **Swing-up:** robust N = 1–5 with realistic angle-only sensing (animations
   rendered); **N = 6 full-state, seed-free** via controllability-aware trajopt
-  (the curated-seed "magic" eliminated, accelerations 7× gentler); **N = 7
-  characterized as a frontier wall** with a precise cause.
+  (the curated-seed "magic" eliminated, accelerations 7× gentler), dt-independent
+  once the mesh is fine enough (§4.2); **N = 7 solved full-state, twice over**
+  (§4.3): the slow reverse-fall (57 s, 9 rev, ±0.78 rad funnel, measured δθ/δv)
+  and the **one-flip** (12 s, 1 rev, bends ≤ 120°, 16/16 at ±0.02 rad — the
+  "nice" corner), with the no-rotation class certified unstabilizable, the
+  winding requirement measured per-mode, minimal winding shown optimal, and the
+  robustness trade quantified (funnel comparison N = 4–7). **N = 8 untested**
+  (the generators are N-generic; the dt ladder predicts ~0.001).
 - **Reproduction** (`repro/`): `generate_n6.py` (seed-free, recommended),
-  `stage2_n6.py` (fast from a seed), `generate_nN.py` (general N; reproduces N=6,
-  documents N=7), `simulate_n6.py` (verify swing-up + balance catch, render mp4),
+  `stage2_n6.py` (fast from a seed), `generate_nN.py` (general N; reproduces N=6),
+  `reverse_fall.py` (slow N=7; arrival-shape enumeration), `fullturn_n7.py`
+  (one-flip N=7: bend-bounded winding classes, energy floor, emergent winding),
+  `n7_robustness.py`
+  (perturbation/quantization bisection), `consistent_nominal.py` +
+  `refine_mesh.py` (nominal-consistency artifact studies), `norot_n7.py` +
+  `norot_refine_ladder.py` + `permode_hard_n7.py` (no-rotation N=7: exists,
+  unstabilizable; coupling-ceiling certificates),
+  `simulate_n6.py` (verify + render; N-generic — produced the N=7 video),
   `perturbed_n6.py` (perturbed-start robustness challenge: 16/16 at ±10%).
 
 This matches the broader literature, where published cart-pole swing-up tops out
@@ -424,11 +606,20 @@ the precision side.
 
 ## 7. Paths for improvement
 
-1. **Per-mode controllability for N=7+.** Replace the scalar bend-excitation
-   floor with a constraint on the **minimum singular value of the input-to-
-   bending-mode coupling across all modes** (ensure every bending mode is
-   excitable along the path). Directly targets the diagnosed N=7 cause; a
-   harder NLP (SVD/eigenvalue constraints in CasADi) with no guarantee.
+1. **Windowed per-mode floor → a "nice" trackable N=7.** The N=7 cause is now
+   measured (§4.3): the worst mode's coupling collapses in the unstable final
+   third. The fix needs no SVD: with the fixed upright bending-mode basis V and
+   the implicit u (M u = b⊙cosθ) already in the NLP, add per-mode hinges
+   |v_jᵀu| ≥ c_j on nodes in t/T ∈ [0.6, 0.95] (or log-sum-exp over short
+   windows — coupling must be available within each instability timescale
+   1/λ, not pointwise). Combined with the no-rotation corridor this directly
+   searches for a *gentle, classical, trackable* N=7; if infeasible, relax the
+   corridor by per-link winding budgets w_i (θ_i ∈ [−1, 2πw_i + 5.9]) and
+   minimize Σw_i — the minimal-winding Pareto frontier between "nice" and
+   "trackable". A complementary route: trackability-in-the-loop continuation
+   from the (ugly, trackable) reverse-fall solution — tighten whip/winding
+   bounds in small homotopy steps, re-verify TVLQR trackability at each rung
+   (seconds per check), stop at the boundary.
 2. **Robust / lower-gain feedback.** The full-state results need ~7·10⁴ gains and
    (at N=6) transient ~5 g pivot accelerations — untrackable by any real observer
    or actuator. Controllability-aware trajectories that lower the required gain,
@@ -436,11 +627,15 @@ the precision side.
    patches") feedback, could move N=6 toward *realistic* sensing.
 3. **Learned policies.** RL/MPC with the verified dynamics as a differentiable
    model — particularly for the catch, where the basin is the binding constraint.
-4. **Precision sweeps for swing-up N≥6** once a realistic-sensing controller
-   exists, to *measure* the δθ/δv tables — replacing the basin/κ **projected**
-   floors now listed for N = 6–8 (§4.1) with achieved tolerances.
-5. **dt-window / robustness margins.** Ship dt in the *middle* of the trackable
-   window (≈0.005–0.006 for N=6) rather than its fine edge (0.004) for margin.
+4. **Precision sweeps for swing-up N≥6** with realistic sensing — the
+   *full-state* δθ/δv are now measured for N = 6–7 (§4.1 note, §4.3); the
+   angle-only floors remain projections until an observer-based controller
+   exists at these N.
+5. ~~dt-window margins~~ **Resolved**: the window was nominal-truncation error
+   (§4.2). Ship fine meshes (h ≤ 0.005, via ladders), not tuned dt.
+6. **N = 8 via reverse falls.** The generator is N-generic and each candidate
+   costs seconds; the dt ladder (0.004 → 0.002 per link) predicts dt ≈ 0.001.
+   A direct test of whether predecessor enumeration scales.
 
 ---
 

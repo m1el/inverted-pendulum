@@ -16,3 +16,5 @@ repro/pool_n6/
 repro/*_cl.npz
 repro/approach*
 sessions/openrouter_models.json
+repro/pool_revfall_n7/
+repro/n7_controls_expm_dt0.002.npz

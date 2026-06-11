@@ -25,9 +25,42 @@ conservation); controllers are LQR (balance) and direct-collocation + TVLQR
   near-uncontrollable from one pivot, so trackability depends on the trajectory's
   "bend order". We remove the reliance on a hand-curated seed with a
   **controllability-aware trajectory optimization** (and cut peak pivot
-  acceleration ~7×). **N = 7** is a characterized frontier wall.
+  acceleration ~7×).
+- **N = 7 is solved** (full-state) — and the solution **must rotate**: classical
+  no-rotation swing-ups *exist* but are certifiably unstabilizable (their worst
+  bending mode goes ~deaf to the single pivot exactly in the unstable final
+  third), while winding trajectories keep every mode audible. The flagship is a
+  **one-flip** swing-up — 12 s, one full revolution, no joint ever bent past
+  120° — verified closed-loop; a slow 9-revolution alternative trades elegance
+  for a ~30× wider disturbance funnel.
 
 Full write-up: **[PAPER.md](PAPER.md)**. Reproduction: **[repro/](repro/README.md)**.
+
+## Results — N = 7 swing-up: the one-flip (full-state)
+
+The chain pumps with a bent configuration, completes **one coordinated
+revolution** through upright, and is caught and balanced on the second arrival —
+12 s, joint bends ≤ 120° (no convolution), settles to 0.03°. Winding is *load-
+bearing*: the fast transversal pass through the mode-deaf straight orientations
+is what keeps the chain controllable (the no-rotation alternative is proven
+unstabilizable — see PAPER §4.3).
+
+![N=7 one-flip swing-up](media/swingup_N7_oneflip.webp)
+
+*(mp4: [media/swingup_N7_oneflip.mp4](media/swingup_N7_oneflip.mp4); controls:
+`repro/n7_oneflip_controls.npz`; the robust slow alternative:
+[media/swingup_N7_revfall_rk4.mp4](media/swingup_N7_revfall_rk4.mp4))*
+
+Pivot x, v, a — closed loop sits on the feedforward (the h=0.0025 nominal is
+dynamics-consistent; ~2.4 g peaks are the plan, not corrections):
+
+![one-flip x, v, a](media/n7_oneflip_xva.png)
+
+Disturbance tolerance along the swing-up vs N (worst-case kick, log scale; the
+one-flip is a precision maneuver — its funnel pinches shut at one mid-flip
+point, survivable only because upstream deviations arrive contracted):
+
+![funnel comparison](media/funnel_compare_N4-7.png)
 
 ## Results — N = 6 swing-up (full-state)
 
