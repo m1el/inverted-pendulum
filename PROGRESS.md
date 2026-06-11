@@ -478,3 +478,29 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   fighting with real feedback; the refined nominal's on-nominal closed loop
   adds ~no jerk. Conclusions weakened accordingly (bandwidth still needed
   off-nominal; path controllability still the lever).
+- 2026-06-11 (cont): RETRACTION + methodology fix. The slow-flip T=24 family
+  (whip 14-16, energy floor over [0.45,0.8]T) produced NO feasible iterates:
+  the quoted C=0.759 came from an EXIT: Restoration Failed iterate at
+  inf_pr=2.1e2 (non-physical); the warm rerun spent 4000 iters in restoration
+  (inf_pr 3.7). All slow-flip coupling/whip numbers VOID; project-best
+  feasible coupling remains v4 champion 0.594. Likely cause: the energy floor
+  at T=24 forces an 8.4 s high-energy dwell under a tight whip bound --
+  plausibly infeasible (T=12 needs only 4.2 s). Its h=0.005 ladder (which
+  inherited the garbage and dived into restoration, defect 2.6e-1) killed.
+  LESSON: 'gate any feasible iterate' requires CHECKING feasibility (read
+  final inf_pr / EXIT mode from the IPOPT log) before quoting ANY metric --
+  a max_iter iterate can be feasible-to-1e-8 or garbage-at-inf_pr-200, and
+  the metrics don't announce which.
+- 2026-06-11 (cont): QUEUE RESOLVED -- final verdicts.
+  (1) v4 champion (1 rev, whip 25, C=0.594) at h=0.0025: feasible iterate
+  (inf_pr 1e-6 audited), defect 2.9e-4, gate 1/4 @ +-0.05, 8/8 @ +-0.005,
+  4/8 @ +-0.02 -- a SECOND verified one-flip, but half the flagship's funnel
+  despite higher coupling: within the fast class, DEFECT GRADE (set by
+  trajectory violence per mesh) dominates coupling for funnel width.
+  Flagship unchanged (v3 one-flip: whip 16, defect 6.3e-5, 16/16 @ +-0.02).
+  (2) Continuation chain (whip ramp on revfall): TD=30/22 rungs BOTH exit in
+  restoration (inf_pr 0.9/1.5) -- tightening whip below the natural 38
+  leaves feasible territory; chain killed. With the slow-flip retraction,
+  the SMOOTH-SLOW corner is officially UNCLAIMED after two failed routes;
+  candidate generator for the future: band-limited brake policy in
+  reverse_fall.py (smooth + exact by construction).
