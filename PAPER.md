@@ -237,7 +237,16 @@ disturbance scaled by gains up to ~10⁵. Re-solving the *same* candidate at
 nominal into one **trackable at every dt ∈ [0.002, 0.012]**, with a funnel
 measured ≥ ±0.5 rad + ±0.8 rad/s at both dt = 0.004 and dt = 0.01 (wider than
 the unrefined trackable candidates: refinement widens the funnel, it does not
-trade robustness for accuracy). Two cautionary findings from the same study
+trade robustness for accuracy). The refined N=6 — with gains additionally
+discretized against the simulator's RK4 step map rather than the matrix
+exponential of the linearized model (`repro/rk4_tvlqr.py`) — is the current
+flagship (`repro/n6_refined_controls.npz`,
+`media/swingup_N6_refined_rk4.mp4`): its **closed-loop pivot acceleration is
+visually identical to the smooth feedforward** (peak 7.0 vs 6.9 m/s²; the lone
+~1 m/s² correction sits at the genuine near-straight low-controllability patch,
+t ≈ 10.3 s), 16/16 on the perturbed-start protocol at the coarse dt = 0.01,
+funnel 0.78/0.85 rad, maxK 5.9·10⁴. The same treatment refreshed N=5
+(`repro/n5_refined_controls.npz`: 16/16 at dt = 0.01, maxK down 17.5k → 14.2k). Two cautionary findings from the same study
 (`repro/consistent_nominal.py`): (i) a *more accurate* resampler (cubic-Hermite
 dense output, 9× closer to the true flow) tracks strictly *worse* at h = 0.01 —
 the linear interpolant's defect is a ~100 Hz zero-mean sawtooth that
@@ -505,6 +514,17 @@ acceleration a(t) into feedforward + TVLQR feedback:
   feedback amplification, concentrated in the *swing* (RMS 23) not the *catch* (1.3).
   Near upright the tracking error is tiny, so even the 6.8·10⁴ gains add little jerk;
   mid-swing the feedback is fighting a barely-controllable plant.
+
+**Retrospective caveat (post-§4.2 artifact work):** these numbers were measured
+on the *h = 0.01, expm-gain* pipeline, where part of the "feedback jerk" was the
+controller fighting nominal-truncation defects, not the plant. On the refined
+flagship (h = 0.005 + RK4-consistent gains) the on-nominal closed loop adds
+essentially **no** jerk over the feedforward (`media/n6_refined_rk4_xva.png`) —
+so the 2.5× figure is an upper bound that conflates the two effects. The §4.6
+conclusions survive in weakened form: feedback bandwidth is still required
+*off-nominal* (the funnel's existence demands it), and the path-controllability
+lever remains the right one, but the *baseline* jerk of a clean nominal is far
+lower than originally reported.
 
 **Can a policy remove it? Not at the feedback layer.** We built the principled
 smoother — a **jerk-penalizing input-augmented TVLQR**: augment the state with the

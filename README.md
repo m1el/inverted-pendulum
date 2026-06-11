@@ -64,11 +64,33 @@ point, survivable only because upstream deviations arrive contracted):
 
 ## Results — N = 6 swing-up (full-state)
 
-### Controllability-aware (seed-free)
+### Refined (h = 0.005 mesh + RK4-consistent gains) — current flagship
+
+The controllability-aware solution, re-solved on a fine collocation mesh and
+tracked with a TVLQR discretized against the **actual simulator step**
+(`repro/rk4_tvlqr.py`). The two fixes remove the nominal-defect artifacts
+entirely: trackable at **every dt from 0.002 to 0.012** (no timestep tuning),
+16/16 on the ±10% + ±0.5 rad/s protocol even at the coarse dt = 0.01, funnel
+≥ ±0.78 rad, and the **closed-loop acceleration sits on the smooth feedforward**
+(peak 7.0 vs 6.9 m/s² — the controller no longer fights its own map).
+
+![N=6 refined swing-up](media/swingup_N6_refined_rk4.webp)
+
+*(mp4: [media/swingup_N6_refined_rk4.mp4](media/swingup_N6_refined_rk4.mp4);
+controls: `repro/n6_refined_controls.npz`)*
+
+Pivot x, v, a — closed loop (red) is indistinguishable from the feedforward
+(gray); the single ~1 m/s² correction at t ≈ 10.3 s is the genuine
+low-controllability patch, not an artifact:
+
+![refined x, v, a](media/n6_refined_rk4_xva.png)
+
+### Original controllability-aware (seed-free)
 
 Hanging → balanced upright, generated with **no curated seed** (a controllability
 objective produces a trackable trajectory by construction); settles to 0.018°,
-peak pivot acceleration ≈ 7 m/s².
+peak pivot acceleration ≈ 7 m/s² (needed dt = 0.004 — later traced to nominal
+truncation error, see PAPER §4.2).
 
 ![N=6 controllability-aware swing-up](media/swingup_N6_ctrbaware.webp)
 

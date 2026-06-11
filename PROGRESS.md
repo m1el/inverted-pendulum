@@ -466,3 +466,15 @@ Sanity check N=1: (1/3)θ̈ = −(1/2)ẍcosθ + (g/2)sinθ ✓ (rod pivoting ab
   (b) slow-flip hedge (one-flip class at T=20/24, whip<=14). Goal: the third
   corner -- smooth AND slow AND robust; full verification (gate, funnel, xva,
   video) queued on any winner.
+- 2026-06-11 (cont): README/PAPER refreshed with the REVISED N=6 as flagship.
+  README: new "Refined (h=0.005 + RK4-consistent gains)" subsection with
+  swingup_N6_refined_rk4.webp/mp4 + n6_refined_rk4_xva.png (closed loop sits
+  on the smooth feedforward; the lone ~1 m/s^2 correction at t~10.3s is the
+  genuine low-ctrb patch); original ctrbaware section kept as historical with
+  the dt=0.004 caveat. PAPER 4.2: refined-flagship paragraph (RK4 gains,
+  16/16 @ dt=0.01, funnel 0.78/0.85, maxK 5.9e4; N=5 refresh noted).
+  PAPER 4.6: retrospective caveat -- the 2.5x feedback-jerk figure was
+  measured on the defective h=0.01/expm pipeline and conflates defect-
+  fighting with real feedback; the refined nominal's on-nominal closed loop
+  adds ~no jerk. Conclusions weakened accordingly (bandwidth still needed
+  off-nominal; path controllability still the lever).
